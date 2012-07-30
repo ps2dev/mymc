@@ -1,0 +1,2 @@
+MYMC_VERSION_BUILD = r'''5'''
+MYMC_VERSION_MAJOR = r'''2'''
