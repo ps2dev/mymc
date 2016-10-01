@@ -7,7 +7,7 @@
 
 """A utility for manipulating PS2 memory card images."""
 
-_SCCS_ID = "@(#) mysc mymc.py 1.11 08/08/11 14:12:26\n"[:-1]
+_SCCS_ID = "@(#) mysc mymc.py 1.12 12/10/04 19:09:16\n"[:-1]
 
 import sys
 import os
@@ -323,7 +323,7 @@ def do_setmode(cmd, mc, opts, args, opterr):
 		ent = mc.get_dirent(arg)
 		if value == None:
 			ent[0] = (ent[0] & clear_mask) | set_mask
-			print "new %04x" % ent[0]
+			# print "new %04x" % ent[0]
 		else:
 			ent[0] = value
 		mc.set_dirent(arg, ent)
@@ -427,7 +427,7 @@ def do_format(cmd, mcname, opts, args, opterr):
 		pages_per_cluster = (ps2mc.PS2MC_CLUSTER_SIZE
 				     / ps2mc.PS2MC_STANDARD_PAGE_SIZE)
 		pages_per_card = opts.clusters * pages_per_cluster
-	params = (True,
+	params = (not opts.no_ecc,
 		  ps2mc.PS2MC_STANDARD_PAGE_SIZE,
 		  ps2mc.PS2MC_STANDARD_PAGES_PER_ERASE_BLOCK,
 		  pages_per_card)
@@ -632,7 +632,9 @@ cmd_table = {
 		   [opt("-c", "--clusters", type="int",
 			help = "Size in clusters of the memory card."),
 		    opt("-f", "--overwrite-existing", action="store_true",
-			help = "Overwrite any existing file")]),
+			help = "Overwrite any existing file"),
+		    opt("-e", "--no-ecc", action="store_true",
+			help = "Create an image without ECC")]),
 	"gui": (do_gui, None,
 		"",
 		"Starts the graphical user interface.",

@@ -7,7 +7,7 @@
 
 """Manipulate PS2 memory card images."""
 
-_SCCS_ID = "@(#) mysc ps2mc.py 1.9 08/08/13 15:31:32\n"
+_SCCS_ID = "@(#) mysc ps2mc.py 1.10 12/10/04 19:10:35\n"
 
 import sys
 import array
@@ -62,6 +62,11 @@ class dir_not_found(io_error):
 		io_error.__init__(self, ENOENT, "directory not found",
 				  filename)
 
+class dir_index_not_found(io_error, IndexError):
+	def __init__(self, filename, index):
+		msg = "index (%d) past of end of directory" % index
+		io_error.__init__(self, ENOENT, msg, filename)
+				  
 class corrupt(io_error):
 	def __init__(self, msg, f = None):
 		filename = None
@@ -521,8 +526,8 @@ class ps2mc_directory(object):
 		# print "@@@ getitem", index, self.f.name
 		self.seek(index)
 		dirent = self.f.read(PS2MC_DIRENT_LENGTH)
-		if dirent == "":
-			raise IndexError
+		if len(dirent) != PS2MC_DIRENT_LENGTH:
+			raise dir_index_not_found(self.f.name, index)
 		return unpack_dirent(dirent)
 
 	def __setitem__(self, index, new_ent):
@@ -624,20 +629,21 @@ class ps2mc(object):
 			self.good_block2 = sb[11]
 			self.indirect_fat_cluster_list = sb[12]
 			self.bad_erase_block_list = sb[13]
-			self._calculate_derived()
-		
-		self.f = f
 
-		self.ignore_ecc = False
-		try:
-			self.read_page(0)
-			self.ignore_ecc = ignore_ecc
-		except ecc_error:
-			# the error might be due the fact the file image
-			# doesn't contain ECC data
-			self.spare_size = 0
-			self.raw_page_size = self.page_size
-			ignore_ecc = True
+			self._calculate_derived()
+
+			self.f = f
+			self.ignore_ecc = False
+
+			try:
+				self.read_page(0)
+				self.ignore_ecc = ignore_ecc
+			except ecc_error:
+				# the error might be due the fact the file
+				# image doesn't contain ECC data
+				self.spare_size = 0
+				self.raw_page_size = self.page_size
+				ignore_ecc = True
 
 		# sanity check
 		root = self._directory(None, 0, 1)
@@ -853,7 +859,11 @@ class ps2mc(object):
 		cluster_size = self.cluster_size
 		if self.spare_size == 0:
 			self.f.seek(cluster_size * n)
-			return self.f.write(cluster_size, buf)
+			if len(buf) != cluster_size:
+				raise error, ("internal error: write_cluster:"
+					      " %d != %d" % (len(buf),
+							     cluster_size))
+			return self.f.write(buf)
 		n *= pages_per_cluster
 		pgsize = self.page_size
 		for i in range(pages_per_cluster):
@@ -1133,7 +1143,11 @@ class ps2mc(object):
 		if start == -1:
 			start = 0
 		for i in range(start, len(dir)) + range(0, start):
-			ent = dir[i]
+			try:
+				ent = dir[i]
+			except IndexError:
+				raise corrupt("Corrupt directory", dir.f)
+				
 			if ent[8] == name and (ent[0] & DF_EXISTS):
 				return (i, ent)
 		return (None, None)
@@ -1800,8 +1814,8 @@ class ps2mc(object):
 							   self.cluster_size)
 				elif (mode_is_dir(ent[0])
 				      and ent[8] not in [".", ".."]):
-					length += self._dir_size(dirname + "/"
-								 + ent[8])
+					length += self.dir_size(dirname + "/"
+								+ ent[8])
 		finally:
 			dir.close()
 		return length
