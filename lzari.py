@@ -11,7 +11,7 @@ a two level dicitionary look up during compression rather than
 LZARI.C's binary search tree.
 """
 
-_SCCS_ID = "@(#) mysc lzari.py 1.5 08/02/05 16:00:34\n"
+_SCCS_ID = "@(#) mysc lzari.py 1.6 12/10/04 19:07:53\n"
 
 import sys
 import array
@@ -655,6 +655,8 @@ else:
 		# print r, compressed.value, comp_len
 		if r == -1:
 			raise MemoryError, "out of memory during compression"
+		if compressed.value == None:
+			return ""
 		ret = ctypes.string_at(compressed.value, comp_len.value)
 		mylzari_free_encoded(compressed)
 		return ret;

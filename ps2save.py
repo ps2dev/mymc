@@ -7,7 +7,7 @@
 # A simple interface for working with various PS2 save file formats.
 #
 
-_SCCS_ID = "@(#) mysc ps2save.py 1.6 08/08/11 14:11:54\n"
+_SCCS_ID = "@(#) mysc ps2save.py 1.7 12/10/04 19:17:16\n"
 
 import sys
 import os
@@ -167,10 +167,10 @@ char_substs = {
 def shift_jis_conv(src, encoding = None):
 	"""Convert Shift-JIS strings to a graphically similar representation.
 
-	If encoding is "unicode" then a Unicode string is returned,
-	otherwise a string in encoding specified is returned.  If necessary,
+	If encoding is "unicode" then a Unicode string is returned, otherwise
+	a string in the encoding specified is returned.  If necessary,
 	graphically similar characters are used to replace characters not
-	exactly representable in the desired encoding.
+	exactly	representable in the desired encoding.
 	"""
 	
 	if encoding == None:
@@ -272,7 +272,7 @@ class ps2_save_file(object):
 		self._compressed = None
 		self.file_ents = [None] * ent[2]
 		self.file_data = [None] * ent[2]
-		self.dirent = ent
+		self.dirent = list(ent)
 
 	def set_file(self, i, ent, data):
 		self.file_ents[i] = ent
@@ -344,6 +344,8 @@ class ps2_save_file(object):
 			(ent, data) = self.get_file(i)
 			f.write(pack_dirent(ent))
 			if not mode_is_file(ent[0]):
+				# print ent
+				# print hex(ent[0])
 				raise error, "Directory has a subdirectory."
 			f.write(data)
 			f.write("\0" * (round_up(len(data), cluster_size)
@@ -360,7 +362,7 @@ class ps2_save_file(object):
 		s = lzari.decode(s, length,
 				 "decompressing " + self.dirent[8] + ": ")
 		dirlen = self.dirent[2]
-		now = tod_now()
+		timestamp = self.dirent[3]
 		off = 0
 		for i in range(dirlen):
 			if len(s) - off < 36:
@@ -373,13 +375,14 @@ class ps2_save_file(object):
 			if len(data) != l:
 				raise eof, f
 			self.set_file(i,
-				      (DF_RWX | DF_FILE | DF_0400, 0, l,
-				       now, 0, 0, now, 0, name),
+				      (DF_RWX | DF_FILE | DF_0400 | DF_EXISTS,
+				       0, l, timestamp, 0, 0, timestamp, 0,
+				       name),
 				      data)
 			off += l
 			off = round_up(off + 8, 16) - 8
 		
-	def load_max_drive(self, f):
+	def load_max_drive(self, f, timestamp = None):
 		s = f.read(0x5C)
 		magic = None
 		if len(s) == 0x5C:
@@ -394,9 +397,11 @@ class ps2_save_file(object):
 		else:
 			s = _read_fixed(f, clen - 4)
 		dirname = zero_terminate(dirname)
-		now = tod_now()
-		self.set_directory((DF_RWX | DF_DIR | DF_0400, 0,
-				    dirlen, now, 0, 0, now, 0, dirname),
+		if timestamp == None:
+			timestamp = tod_now()
+		self.set_directory((DF_RWX | DF_DIR | DF_0400 | DF_EXISTS,
+				    0, dirlen, timestamp, 0, 0, timestamp, 0,
+				    dirname),
 				   True)
 		self._compressed = (length, s)
 		

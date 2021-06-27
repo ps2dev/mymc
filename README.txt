@@ -3,7 +3,7 @@ README.txt
 By Ross Ridge
 Pubic Domain
 
-@(#) mymc README.txt 1.5 08/02/06 13:26:26
+@(#) mymc README.txt 1.6 12/10/04 19:18:08
 
 
 This file describes mymc, a utility for manipulating PlayStation 2
@@ -109,15 +109,15 @@ saves to someone else to use or just keep them on your hard drive as a
 backup.  The following command demonstrates how to export a save in
 the EMS format using mymc:
 
-    c:\mymc\mymc c:\pcsx2\memcards\Mcd001.ps2 export BASLUS-20448-000D
+    c:\mymc\mymc c:\pcsx2\memcards\Mcd001.ps2 export BASLUS-20448-0000D
 
-This will create a file called "BASLUS-20448-000D.psu" in the current
+This will create a file called "BASLUS-20448-0000D.psu" in the current
 directory.  To create a file in the MAX format instead, use the export
 command's -m option:
 
-    c:\mymc\mymc c:\pcsx2\memcards\Mcd001.ps2 export -m BASLUS-20448-000D
+    c:\mymc\mymc c:\pcsx2\memcards\Mcd001.ps2 export -m BASLUS-20448-0000D
 
-This creates a file named "BASLUS-20448-000D.max".  Note the "-m"
+This creates a file named "BASLUS-20448-0000D.max".  Note the "-m"
 option that appears after the "export" command.
 
 Importing save files is similar.  The save file type is auto-detected,

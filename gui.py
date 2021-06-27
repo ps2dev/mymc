@@ -7,7 +7,7 @@
 
 """Graphical user-interface for mymc."""
 
-_SCCS_ID = "@(#) mymc gui.py 1.3 08/02/06 13:15:41\n"
+_SCCS_ID = "@(#) mymc gui.py 1.4 12/10/04 18:51:51\n"
 
 import os
 import sys
@@ -483,11 +483,16 @@ class gui_frame(wx.Frame):
 		"""Display a message box for EnvironmentError exeception."""
 
 		if filename == None:
+			filename = getattr(value, "filename")
+		if filename == None:
 			filename = self.mcname
-			if filename == None:
-				filename = "???"
-		filename = getattr(value, "filename", filename) 
-		strerror = getattr(value, "strerror", "unknown error")
+		if filename == None:
+			filename = "???"
+					
+		strerror = getattr(value, "strerror", None)
+		if strerror == None:
+			strerror = "unknown error"
+			
 		return self.error_box(filename + ": " + strerror)
 
 	def __init__(self, parent, title, mcname = None):

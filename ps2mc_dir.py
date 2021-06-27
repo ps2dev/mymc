@@ -7,7 +7,7 @@
 
 """Functions for working with PS2 memory card directory entries."""
 
-_SCCS_ID = "@(#) mysc ps2mc_dir.py 1.3 08/02/05 15:51:58\n"
+_SCCS_ID = "@(#) mysc ps2mc_dir.py 1.4 12/10/04 19:11:08\n"
 
 import struct
 import time
@@ -122,7 +122,10 @@ def tod_to_time(tod):
 def tod_now():
 	"""Get the current time as a ToD tuple."""
 	return time_to_tod(time.time())
-	
+
+def tod_from_file(filename):
+	return time_to_tod(os.stat(filename).st_mtime)
+
 def mode_is_file(mode):
 	return (mode & (DF_FILE | DF_DIR | DF_EXISTS)) == (DF_FILE | DF_EXISTS)
 
