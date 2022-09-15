@@ -7,13 +7,13 @@
 
 """Manipulate PS2 memory card images."""
 
-_SCCS_ID = "@(#) mysc ps2mc.py 1.10 12/10/04 19:10:35\n"
+_SCCS_ID = "@(#) mymc ps2mc.py 1.11 22/01/15 01:17:07\n"
 
 import sys
 import array
 import struct
 from errno import EACCES, ENOENT, EEXIST, ENOTDIR, EISDIR, EROFS, ENOTEMPTY,\
-     ENOSPC, EIO, EBUSY
+     ENOSPC, EIO, EBUSY, EINVAL
 import fnmatch
 import traceback
 
@@ -82,6 +82,7 @@ if sys.byteorder == "big":
 	def unpack_32bit_array(s):
 		a = array.array('I', s)
 		a.byteswap()
+		return a
 
 	def pack_32bit_array(a):
 		a = a[:]
@@ -114,6 +115,16 @@ def pack_superblock(sb):
 unpack_fat = unpack_32bit_array
 pack_fat = pack_32bit_array
 
+def pathname_split(pathname):
+	if pathname == "":
+		return (None, False, False)
+	components = pathname.split("/")
+	return ([name
+		 for name in components
+		 if name != ""],
+		components[0] != "",
+		components[-1] == "")
+		
 class lru_cache(object):
 	def __init__(self, length):
 		self._lru_list = [[i - 1, None, None, i + 1]
@@ -539,14 +550,9 @@ class ps2mc_directory(object):
 			mode = ((new_ent[0] & ~(DF_FILE | DF_DIR | DF_EXISTS))
 				| (mode & (DF_FILE | DF_DIR | DF_EXISTS)))
 			ent[0] = mode
-		if new_ent[1] != None:
-			ent[1] = new_ent[1]
-		if new_ent[3] != None:
-			ent[3] = new_ent[3]
-		if new_ent[6] != None:
-			ent[6] = new_ent[6]
-		if new_ent[7] != None:
-			ent[7] = new_ent[7]
+		for i in [1, 3, 6, 7, 8]: # ???, created, modifed, attr
+			if new_ent[i] != None:
+				ent[i] = new_ent[i]
 		self.write_raw_ent(index, ent, False)
 
 	def close(self):
@@ -1154,6 +1160,9 @@ class ps2mc(object):
 
 	def create_dir_entry(self, parent_dirloc, name, mode):
 		"""Create a new directory entry in a directory."""
+
+		if name == "":
+			raise file_not_found, name
 		
 		# print "@@@ create_dir_ent", parent_dirloc, name
 		dir_ent = self._dirloc_to_ent(parent_dirloc)
@@ -1262,49 +1271,54 @@ class ps2mc(object):
 		directory, if it exists, otherwise it's the dirloc the
 		pathname's parent directory, if that exists otherwise
 		it's None.  The second component is directory entry
-		for pathname if it exists, otherwise None.  The third
+		for pathname if it exists, otherwise its dummy entry
+		with the first element set to 0, and the last element
+		set to the final component of the pathname.  The third
 		is a boolean value that's true if the pathname refers
 		a directory."""
-		
-		components = pathname.split("/")
-		if len(components) < 1:
-			# could return curdir
+
+		# print "@@@ path_search", repr(pathname)
+		if pathname == "":
 			return (None, None, False)
 
-		dirloc = self.curdir
-		if components[0] == "":
-			dirloc = (0, 0)
+		(components, relative, is_dir) = pathname_split(pathname)
+
+		dirloc = (0, 0)
+		if relative:
+			dirloc = self.curdir
+
+		tmpname = "<path_search temp>"
+		_directory = self._directory
+		
 		if dirloc == (0, 0):
 			rootent = self.read_allocatable_cluster(0)
 			ent = unpack_dirent(rootent[:PS2MC_DIRENT_LENGTH])
 			dir_cluster = 0
-			dir = self._directory(dirloc, dir_cluster, ent[2],
-					      name = "<path_search temp>")
+			dir = _directory(dirloc, dir_cluster, ent[2],
+					      name = tmpname)
 		else:
 			ent = self._dirloc_to_ent(dirloc)
-			dir = self._directory(dirloc, ent[4], ent[2],
-					      name = "<path_search temp>")
+			dir = _directory(dirloc, ent[4], ent[2],
+					 name = tmpname)
 
 		for s in components:
 			# print "@@@", dirloc, repr(s), dir == None, ent
-			if s == "":
-				continue
-			
+
 			if dir == None:
 				# tried to traverse a file or a
 				# non-existent directory
-				return (None, None, False)
+				return (None, (0, 0, 0, 0, 0, 0, 0, 0, None),
+					False)
 			
-			if s == "" or s == ".":
+			if s == ".":
 				continue
 			if s == "..":
 				dotent = dir[0]
 				dir.close()
 				dirloc = (dotent[4], dotent[5])
 				ent = self._dirloc_to_ent(dirloc)
-				dir = self._directory(dirloc, ent[4], ent[2],
-						      name
-						      = "<path_search temp>")
+				dir = _directory(dirloc, ent[4], ent[2],
+						 name = tmpname)
 				continue
 
 			dir_cluster = ent[4]
@@ -1317,29 +1331,34 @@ class ps2mc(object):
 			
 			dirloc = (dir_cluster, i)
 			if ent[0] & DF_DIR:
-				dir = self._directory(dirloc, ent[4], ent[2],
-						      name
-						      = "<path_search temp>")
+				dir = _directory(dirloc, ent[4], ent[2],
+						 name = tmpname)
 
 		if dir != None:
 			dir.close()
+			is_dir = True
+		elif ent != None:
+			is_dir = False
+
+		if ent == None:
+			ent = (0, 0, 0, 0, 0, 0, 0, 0, components[-1])
 			
-		return (dirloc, ent, dir != None)
+		return (dirloc, ent, is_dir)
 
 	def open(self, filename, mode = "r"):
 		"""Open a file, returning a new file-like object for it."""
 		
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		# print "@@@ open", (dirloc, ent)
-		if dirloc == None or (ent == None and is_dir):
+		if dirloc == None:
 			raise path_not_found, filename
 		if is_dir:
 			raise io_error, (EISDIR, "not a regular file",
 					 filename)
-		if ent == None:
+		if ent[0] == 0:
 			if mode[0] not in "wa":
 				raise file_not_found, filename
-			name = filename.split("/")[-1]
+			name = ent[8]
 			(dirloc, ent) = self.create_dir_entry(dirloc, name,
 							      DF_FILE | DF_RWX
 							      | DF_0400);
@@ -1354,7 +1373,7 @@ class ps2mc(object):
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
 			raise path_not_found, filename
-		if ent == None:
+		if ent[0] == 0:
 			raise dir_not_found, filename
 		if not is_dir:
 			raise io_error, (ENOTDIR, "not a directory", filename)
@@ -1364,12 +1383,9 @@ class ps2mc(object):
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
 			raise path_not_found, filename
-		if ent != None:
+		if ent[0] != 0:
 			raise io_error, (EEXIST, "directory exists", filename)
-		a = filename.split("/")
-		name = a.pop()
-		while name == "":
-			name = a.pop()
+		name = ent[8]
 		self.create_dir_entry(dirloc, name, DF_DIR | DF_RWX | DF_0400)
 		self.flush()
 
@@ -1392,7 +1408,7 @@ class ps2mc(object):
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
 			raise path_not_found, filename
-		if ent == None:
+		if ent[0] == 0:
 			raise file_not_found, filename
 		if is_dir:
 			if ent[4] == 0:
@@ -1410,7 +1426,7 @@ class ps2mc(object):
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
 			raise path_not_found, filename
-		if ent == None:
+		if ent[0] == 0:
 			raise dir_not_found, filename
 		if not is_dir:
 			raise io_error, (ENOTDIR, "not a directory", filename)
@@ -1423,7 +1439,7 @@ class ps2mc(object):
 		throwing a error."""
 		
 		(dirloc, ent, is_dir) = self.path_search(filename)
-		if ent == None:
+		if ent[0] == 0:
 			return None
 		return ent[0]
 	
@@ -1433,7 +1449,7 @@ class ps2mc(object):
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
 			raise path_not_found, filename
-		if ent == None:
+		if ent[0] == 0:
 			raise file_not_found, filename
 		return ent
 
@@ -1446,16 +1462,101 @@ class ps2mc(object):
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
 			raise path_not_found, filename
-		if ent == None:
+		if ent[0] == 0:
 			raise file_not_found, filename
-		dir = self._opendir_parent_dirloc(dirloc)
+		dir = self._opendir_parent_dirloc(dirloc, "r+b")
 		try:
+			new_ent = list(new_ent)
+			new_ent[8] = None
 			dir[dirloc[1]] = new_ent
 		finally:
 			dir.close()
 		self.flush()
 		return ent
 
+	def is_ancestor(self, dirloc, olddirloc):
+		while True:
+			if dirloc == olddirloc:
+				return True
+			if dirloc == (0, 0):
+				return False
+			dirloc = self._get_parent_dirloc(dirloc)
+
+	def rename(self, oldpathname, newpathname):
+		(olddirloc, oldent, is_dir) = self.path_search(oldpathname)
+		if olddirloc == None:
+			raise path_not_found, oldpathname
+		if oldent[0] == 0:
+			raise file_not_found, oldpathname
+
+		if olddirloc == (0, 0):
+			raise io_error, (EINVAL,
+					 "cannot rename root directory",
+					 oldpathname)
+		if olddirloc in self.open_files:
+			raise io_error, (EBUSY, "cannot rename open file",
+					 newname)
+		
+		(newparentdirloc, newent, x) = self.path_search(newpathname)
+		if newparentdirloc == None:
+			raise path_not_found, newpathname
+		if newent[0] != 0:
+			raise io_error, (EEXIST, "file exists", newpathname)
+		newname = newent[8]
+
+		oldparentdirloc = self._get_parent_dirloc(olddirloc)
+		if oldparentdirloc == newparentdirloc:
+			dir = self._opendir_dirloc(oldparentdirloc, "r+b")
+			try:
+				dir[olddirloc[1]] = (None, None, None, None,
+						     None, None, None, None,
+						     newname)
+			finally:
+				dir.close()
+			return
+
+		if is_dir and self.is_ancestor(newparentdirloc, olddirloc):
+			raise io_error, (EINVAL, "cannot move directory"
+					 " beneath itself", oldpathname)
+			
+
+		newparentdir = None
+		newent = None
+		try:
+			tmpmode = (oldent[0] & ~DF_DIR) | DF_FILE
+			
+			(newdirloc, newent) \
+				= self.create_dir_entry(newparentdirloc,
+							newname, tmpmode)
+
+			newent[:8] = oldent[:8]
+			newparentdir = self._opendir_dirloc(newparentdirloc)
+			newparentdir.write_raw_ent(newdirloc[1], newent, True)
+			newent = None
+
+			oldent[0] &= ~DF_EXISTS
+			self.update_dirent_all(olddirloc, None, oldent)
+
+		except:
+			if newent != None:
+				self.delete_dirloc(newdirloc, False,
+						   newpathname)
+		finally:
+			if newparentdir != None:
+				newparentdir.close()
+
+		if not is_dir:
+			return
+			
+		newdir = self._opendir_dirloc(newdirloc)
+		try:
+			dotent = list(newdir[0])
+			dotent[4:6] = newdirloc
+			newdir.write_raw_ent(0, dotent, False)
+		finally:
+			newdir.close()
+			
+			
 	def import_save_file(self, sf, ignore_existing, dirname = None):
 		"""Copy the contents a ps2_save_file object to a directory.
 
@@ -1468,30 +1569,20 @@ class ps2mc(object):
 		
 		dir_ent = sf.get_directory()
 		if dirname == None:
-			dir_ent_name = dir_ent[8]
 			dirname = "/" + dir_ent[8]
-		else:
-			if dirname == "":
-				raise path_not_found, dirname
-			
-			# remove trailing slashes
-			dirname = dirname.rstrip("/")
-			if dirname == "":
-				dirname = "/"
-			dir_ent_name = dirname.split("/")[0]
 
 		(root_dirloc, ent, is_dir) = self.path_search(dirname)
 		if root_dirloc == None:
 			raise path_not_found, dirname
-		if ent != None:
+		if ent[0] != 0:
 			if ignore_existing:
 				return False
 			raise io_error, (EEXIST, "directory exists", dirname)
+		name = ent[8]
 		mode = DF_DIR | (dir_ent[0] & ~DF_FILE)
 
 		(dir_dirloc, ent) = self.create_dir_entry(root_dirloc,
-							  dir_ent_name,
-							  mode)
+							  name, mode)
 		try:
 			assert dirname != "/"
 			dirname = dirname + "/"
@@ -1541,7 +1632,9 @@ class ps2mc(object):
 			
 		dir = self._opendir_dirloc(root_dirloc, "r+b")
 		try:
-			dir[dir_dirloc[1]] = dir_ent
+			a = dir_ent[:]
+			a[8] = None	# don't change the name
+			dir[dir_dirloc[1]] = a
 		finally:
 			dir.close()
 
@@ -1552,7 +1645,7 @@ class ps2mc(object):
 		(dir_dirloc, dirent, is_dir) = self.path_search(filename)
 		if dir_dirloc == None:
 			raise path_not_found, filename
-		if dirent == None:
+		if dirent[0] == 0:
 			raise dir_not_found, filename
 		if not is_dir:
 			raise io_error, (ENOTDIR, "not a directory", filename)
@@ -1619,7 +1712,7 @@ class ps2mc(object):
 		(dirloc, ent, is_dir) = self.path_search(dirname)
 		if dirloc == None:
 			raise path_not_found, dirname
-		if ent == None:
+		if ent[0] == 0:
 			raise dir_not_found, dirname
 		if not is_dir:
 			raise io_error, (ENOTDIR, "not a directory", dirname)
@@ -1740,24 +1833,33 @@ class ps2mc(object):
 			
 		return ret
 
-	def _glob(self, dirname, components):
+	def _globdir(self, dirname, components, is_dir):
 		pattern = components[0]
-		if len(components) == 1:
-			if pattern == "":
-				return [dirname]
+		if dirname == "":
+			dir = self.dir_open(".")
+		else:
 			dir = self.dir_open(dirname)
-			try:
-				return [dirname + ent[8]
-					for ent in dir
-					if ((ent[0] & DF_EXISTS)
-					    and (ent[8] not in [".", ".."]
-						 or ent[8] == pattern)
-					    and fnmatch.fnmatchcase(ent[8],
-								    pattern))]
-			finally:
-				dir.close()
-		if pattern == "":
-			return self._glob(dirname + "/", components[1:])
+		try:
+			return [dirname + ent[8]
+				for ent in dir
+				if ((ent[0] & DF_EXISTS)
+				    and (not is_dir or (ent[8] & DF_DIR))
+				    and (ent[8] not in [".", ".."]
+					 or ent[8] == pattern)
+				    and fnmatch.fnmatchcase(ent[8],
+							    pattern))]
+		finally:
+			dir.close()
+		
+	def _glob(self, dirname, components, is_dir):
+		pattern = components[0]
+		components = components[1:]
+		
+		if len(components) == 1:
+			_glob = self._globdir
+		else:
+			_glob = self._glob
+
 		if dirname == "":
 			dir = self.dir_open(".")
 		else:
@@ -1774,18 +1876,28 @@ class ps2mc(object):
 						continue
 				elif not fnmatch.fnmatchcase(name, pattern):
 					continue
-				ret += self._glob(dirname + name + "/",
-						  components[1:])
+				ret += _glob(dirname + name + "/",
+					     components, is_dir)
 		finally:
 			dir.close()
 		return ret
 		
 	def glob(self, pattern):
 		if pattern == "":
-			return []
-		ret = self._glob("", pattern.split("/"))
+			return [""]
+		(components, relative, isdir) = pathname_split(pattern)
+		if len(components) == 0:
+			return ["/"]
+		if relative:
+			dirname = ""
+		else:
+			dirname = "/"
+		if len(components) == 1:
+			ret = self._globdir(dirname, components, isdir)
+		else:
+			ret = self._glob(dirname, components, isdir)
 		# print pattern, "->", ret
-		return self._glob("", pattern.split("/"))
+		return ret
 
 	def get_icon_sys(self, dirname):
 		"""Get contents of a directory's icon.sys file, if it exits."""

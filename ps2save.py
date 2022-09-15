@@ -7,7 +7,7 @@
 # A simple interface for working with various PS2 save file formats.
 #
 
-_SCCS_ID = "@(#) mysc ps2save.py 1.7 12/10/04 19:17:16\n"
+_SCCS_ID = "@(#) mymc ps2save.py 1.8 22/01/15 01:25:25\n"
 
 import sys
 import os
@@ -142,6 +142,8 @@ char_substs = {
 	u'\u254b': u"+",
 	u'\u25a0': u"#",
 	u'\u25a1': u"#",
+	u'\u2605': u"*",
+	u'\u2606': u"*",
 	u'\u3001': u",",
 	u'\u3002': u".",
 	u'\u3003': u'"',
@@ -279,7 +281,7 @@ class ps2_save_file(object):
 		self.file_data[i] = data
 
 	def get_directory(self):
-		return self.dirent
+		return self.dirent[:]
 
 	def get_file(self, i):
 		if self._defer_load_max:
@@ -589,10 +591,10 @@ _bad_filename_chars = ("".join(map(chr, range(32)))
 _bad_filename_repl = "_" * len(_bad_filename_chars)
 
 if os.name in ["nt", "os2", "ce"]:
-	_bad_filename_chars += '<>:"/\\|'
-	_bad_filename_repl +=  "()_'___"
-	_bad_filename_chars2 = _bad_filename_chars + "?* "
-	_bad_filename_repl2 = _bad_filename_repl +   "___"
+	_bad_filename_chars += '<>:"/\\|?*'
+	_bad_filename_repl +=  "()_'_____"
+	_bad_filename_chars2 = _bad_filename_chars + " "
+	_bad_filename_repl2 = _bad_filename_repl +   "_"
 else:
 	_bad_filename_chars += "/"
 	_bad_filename_repl += "_"

@@ -7,7 +7,7 @@
 
 """A utility for manipulating PS2 memory card images."""
 
-_SCCS_ID = "@(#) mysc mymc.py 1.12 12/10/04 19:09:16\n"[:-1]
+_SCCS_ID = "@(#) mymc mymc.py 1.13 22/01/15 01:04:45\n"[:-1]
 
 import sys
 import os
@@ -17,6 +17,9 @@ import textwrap
 import binascii
 import string
 from errno import EEXIST, EIO
+
+#import gc
+#gc.set_debug(gc.DEBUG_LEAK)
 
 import ps2mc
 import ps2save
@@ -328,6 +331,11 @@ def do_setmode(cmd, mc, opts, args, opterr):
 			ent[0] = value
 		mc.set_dirent(arg, ent)
 
+def do_rename(cmd, mc, opts, args, opterr):
+	if len(args) != 2:
+		opterr("Old and new names required")
+	mc.rename(args[0], args[1])
+	
 def _get_ps2_title(mc, enc):
 	s = mc.get_icon_sys(".");
 	if s == None:
@@ -549,7 +557,7 @@ cmd_table = {
 		   "Import save files into the memory card.",
 		   [opt("-i", "--ignore-existing", action="store_true",
 			help = ("Ignore files that already exist"
-				"on the image.")),
+				" on the image.")),
 		    opt("-d", "--directory", metavar="DEST",
 			help = 'Import to "DEST".')]),
 	"export": (do_export, "rb",
@@ -614,6 +622,10 @@ cmd_table = {
 		     help = "Clear executable flag"),
 		 opt("-X", dest="hex_value", default=None,
 		     help = optparse.SUPPRESS_HELP)]),
+	"rename": (do_rename, "r+b",
+		   "oldname newname",
+		   "Rename a file or directory",
+		   []),
 	"dir": (do_dir, "rb",
 		None,
 		"Display save file information.",
@@ -731,6 +743,7 @@ def main():
 		except ImportError:
 			gui = None
 		if gui != None:
+			optparser.destroy()
 			gui.run()
 			sys.exit(0)
 

@@ -7,13 +7,14 @@
 
 """Graphical user-interface for mymc."""
 
-_SCCS_ID = "@(#) mymc gui.py 1.4 12/10/04 18:51:51\n"
+_SCCS_ID = "@(#) mymc gui.py 1.8 22/02/05 19:20:59\n"
 
 import os
 import sys
 import struct
 import cStringIO
 import time
+from functools import partial
 
 # Work around a problem with mixing wx and py2exe
 if os.name == "nt" and hasattr(sys, "setdefaultencoding"):
@@ -26,16 +27,16 @@ import guires
 
 try:
 	import ctypes
-	import mymcsup
-	D3DXVECTOR3 = mymcsup.D3DXVECTOR3
-	D3DXVECTOR4 = mymcsup.D3DXVECTOR4
-	D3DXVECTOR4_ARRAY3 = mymcsup.D3DXVECTOR4_ARRAY3
+	import mymcicon
+	D3DXVECTOR3 = mymcicon.D3DXVECTOR3
+	D3DXVECTOR4 = mymcicon.D3DXVECTOR4
+	D3DXVECTOR4_ARRAY3 = mymcicon.D3DXVECTOR4_ARRAY3
 
 	def mkvec4arr3(l):
 		return D3DXVECTOR4_ARRAY3(*[D3DXVECTOR4(*vec)
 					    for vec in l])
 except ImportError:
-	mymcsup = None
+	mymcicon = None
 
 lighting_none = {"lighting": False,
 		 "vertex_diffuse": False,
@@ -89,7 +90,7 @@ camera_near = [0, 3, -6]
 camera_flat = [0, 2, -7.5]
 
 def get_dialog_units(win):
-	return win.ConvertDialogPointToPixels((1, 1))[0]
+	return win.ConvertDialogToPixels((1, 1))[0]
 
 def single_title(title):
 	"""Convert the two parts of an icon.sys title into one string."""
@@ -105,7 +106,7 @@ def _get_icon_resource_as_images(name):
 	# count = wx.Image_GetImageCount(f, wx.BITMAP_TYPE_ICO)
 	for i in range(count):
 		f.seek(0)
-		images.append(wx.ImageFromStream(f, wx.BITMAP_TYPE_ICO, i))
+		images.append(wx.Image(f, wx.BITMAP_TYPE_ICO, i))
 	return images
 	
 def get_icon_resource(name):
@@ -113,8 +114,8 @@ def get_icon_resource(name):
 
 	bundle = wx.IconBundle()
 	for img in _get_icon_resource_as_images(name):
-		bmp = wx.BitmapFromImage(img)
-		icon = wx.IconFromBitmap(bmp)
+		bmp = wx.Bitmap(img)
+		icon = wx.Icon(bmp)
 		bundle.AddIcon(icon)
 	return bundle
 
@@ -128,7 +129,7 @@ def get_icon_resource_bmp(name, size):
 	for img in _get_icon_resource_as_images(name):
 		sz = (img.GetWidth(), img.GetHeight())
 		if sz == size:
-			return wx.BitmapFromImage(img)
+			return wx.Bitmap(img)
 		if sz[0] >= size[0] and sz[1] >= size[1]:
 			if ((best_size[0] < size[0] or best_size[1] < size[1])
 			    or sz[0] * sz[1] < best_size[0] * best_size[1]):
@@ -138,7 +139,7 @@ def get_icon_resource_bmp(name, size):
 			best = img
 			best_size = sz
 	img = best.Rescale(size[0], size[1], wx.IMAGE_QUALITY_HIGH)
-	return wx.BitmapFromImage(img)
+	return wx.Bitmap(img)
 
 
 class dirlist_control(wx.ListCtrl):
@@ -150,10 +151,11 @@ class dirlist_control(wx.ListCtrl):
 		self.evt_select = evt_select
 		wx.ListCtrl.__init__(self, parent, wx.ID_ANY,
 				     style = wx.LC_REPORT)
-		wx.EVT_LIST_COL_CLICK(self, -1, self.evt_col_click)
-		wx.EVT_LIST_ITEM_FOCUSED(self, -1, evt_focus)
-		wx.EVT_LIST_ITEM_SELECTED(self, -1, self.evt_item_selected)
-		wx.EVT_LIST_ITEM_DESELECTED(self, -1, self.evt_item_deselected)
+		self.Bind(wx.EVT_LIST_COL_CLICK, self.evt_col_click)
+		self.Bind(wx.EVT_LIST_ITEM_FOCUSED, evt_focus)
+		self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.evt_item_selected)
+		self.Bind(wx.EVT_LIST_ITEM_DESELECTED,
+			  self.evt_item_deselected)
 
 	def _update_dirtable(self, mc, dir):
 		self.dirtable = table = []
@@ -181,34 +183,43 @@ class dirlist_control(wx.ListCtrl):
 			self._update_dirtable(mc, dir)
 		finally:
 			dir.close()
-			
-	def cmp_dir_name(self, i1, i2):
-		return self.dirtable[i1][0][8] > self.dirtable[i2][0][8]
 
-	def cmp_dir_title(self, i1, i2):
-		return self.dirtable[i1][3] > self.dirtable[i2][3]
+	def get_dir_name(self, i):
+		return self.dirtable[i][0][8]
 
-	def cmp_dir_size(self, i1, i2):
-		return self.dirtable[i1][2] > self.dirtable[i2][2]
+	def get_dir_title(self, i):
+		return self.dirtable[i][3]
 
-	def cmp_dir_modified(self, i1, i2):
-		m1 = list(self.dirtable[i1][0][6])
-		m2 = list(self.dirtable[i2][0][6])
-		m1.reverse()
-		m2.reverse()
-		return m1 > m2
-	
-	def evt_col_click(self, event):
-		col = event.m_col
-		if col == 0:
-			cmp = self.cmp_dir_name
-		elif col == 1:
-			cmp = self.cmp_dir_size
-		elif col == 2:
-			cmp = self.cmp_dir_modified
-		elif col == 3:
-			cmp = self.cmp_dir_title
+	def get_dir_size(self, i):
+		return self.dirtable[i][2]
+
+	def get_dir_modified(self, i):
+		m = list(self.dirtable[i][0][6])
+		m.reverse()
+		return m
+
+	def sort_items(self, key):
+		def cmp(i1, i2):
+			a1 = key(i1)
+			a2 = key(i2)
+			if a1 < a2:
+				return -1
+			if a1 > a2:
+				return 1
+			return 0
 		self.SortItems(cmp)
+		
+	def evt_col_click(self, event):
+		col = event.GetColumn()
+		if col == 0:
+			key = self.get_dir_name
+		elif col == 1:
+			key = self.get_dir_size
+		elif col == 2:
+			key = self.get_dir_modified
+		elif col == 3:
+			key = self.get_dir_title
+		self.sort_items(key)
 		return
 
 	def evt_item_selected(self, event):
@@ -236,34 +247,33 @@ class dirlist_control(wx.ListCtrl):
 		
 		self.update_dirtable(mc)
 		
-		empty = len(self.dirtable) == 0
+		empty = (len(self.dirtable) == 0)
 		self.Enable(not empty)
 		if empty:
 			return
 		
 		for (i, a) in enumerate(self.dirtable):
 			(ent, icon_sys, size, title) = a
-			li = self.InsertStringItem(i, ent[8])
-			self.SetStringItem(li, 1, "%dK" % (size / 1024))
+			li = self.InsertItem(i, ent[8])
+			self.SetItem(li, 1, "%dK" % (size / 1024))
 			m = ent[6]
-			m = ("%04d-%02d-%02d %02d:%02d"
-			     % (m[5], m[4], m[3], m[2], m[1]))
-			self.SetStringItem(li, 2, m)
-			self.SetStringItem(li, 3, single_title(title))
+			self.SetItem(li, 2, ("%04d-%02d-%02d %02d:%02d"
+					     % (m[5], m[4], m[3], m[2], m[1])))
+			self.SetItem(li, 3, single_title(title))
 			self.SetItemData(li, i)
 
 		du = get_dialog_units(self)
 		for i in range(4):
 			self.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 			self.SetColumnWidth(i, self.GetColumnWidth(i) + du)
-		self.SortItems(self.cmp_dir_name)
+		self.sort_items(self.get_dir_name)
 
 
 class icon_window(wx.Window):
 	"""Displays a save file's 3D icon.  Windows only.
 	
 	The rendering of the 3D icon is handled by C++ code in the
-	mymcsup DLL which subclasses this window.  This class mainly
+	mymcicon DLL which subclasses this window.  This class mainly
 	handles configuration options that affect how the 3D icon is
 	displayed.
 	"""
@@ -310,40 +320,38 @@ class icon_window(wx.Window):
 		menu.AppendRadioItem(icon_window.ID_CMD_CAMERA_HIGH,
 				     "Camera High")
 
-		wx.EVT_MENU(win, icon_window.ID_CMD_ANIMATE,
-			    self.evt_menu_animate)
-		wx.EVT_MENU(win, icon_window.ID_CMD_LIGHT_NONE,
-			    self.evt_menu_light)
-		wx.EVT_MENU(win, icon_window.ID_CMD_LIGHT_ICON,
-			    self.evt_menu_light)
-		wx.EVT_MENU(win, icon_window.ID_CMD_LIGHT_ALT1,
-			    self.evt_menu_light)
-		wx.EVT_MENU(win, icon_window.ID_CMD_LIGHT_ALT2,
-			    self.evt_menu_light)
-		
-		wx.EVT_MENU(win, icon_window.ID_CMD_CAMERA_FLAT,
-			    self.evt_menu_camera)
-		wx.EVT_MENU(win, icon_window.ID_CMD_CAMERA_DEFAULT,
-			    self.evt_menu_camera)
-		wx.EVT_MENU(win, icon_window.ID_CMD_CAMERA_NEAR,
-			    self.evt_menu_camera)
-		wx.EVT_MENU(win, icon_window.ID_CMD_CAMERA_HIGH,
-			    self.evt_menu_camera)
+		bind_menu = partial(win.Bind, wx.EVT_MENU)
+
+		bind_menu(self.evt_menu_animate, None,
+			  icon_window.ID_CMD_ANIMATE)
+
+		bind_menu_light = partial(bind_menu, self.evt_menu_light, None)
+		bind_menu_light(icon_window.ID_CMD_LIGHT_NONE)
+		bind_menu_light(icon_window.ID_CMD_LIGHT_ICON)
+		bind_menu_light(icon_window.ID_CMD_LIGHT_ALT1)
+		bind_menu_light(icon_window.ID_CMD_LIGHT_ALT2)
+
+		bind_menu_camera = partial(bind_menu,
+					   self.evt_menu_camera, None)
+		bind_menu_camera(icon_window.ID_CMD_CAMERA_FLAT)
+		bind_menu_camera(icon_window.ID_CMD_CAMERA_DEFAULT)
+		bind_menu_camera(icon_window.ID_CMD_CAMERA_NEAR)
+		bind_menu_camera(icon_window.ID_CMD_CAMERA_HIGH)
 		
 	def __init__(self, parent, focus):
 		self.failed = False
 		wx.Window.__init__(self, parent)
-		if mymcsup == None:
+		if mymcicon == None:
 			self.failed = True
 			return
-		r = mymcsup.init_icon_renderer(focus.GetHandle(),
+		r = mymcicon.init_icon_renderer(focus.GetHandle(),
 					       self.GetHandle())
 		if r == -1:
 			print "init_icon_renderer failed"
 			self.failed = True
 			return
 		
-		self.config = config = mymcsup.icon_config()
+		self.config = config = mymcicon.icon_config()
 		config.animate = True
 
 		self.menu = wx.Menu()
@@ -351,11 +359,11 @@ class icon_window(wx.Window):
 		self.set_lighting(self.ID_CMD_LIGHT_ALT2)
 		self.set_camera(self.ID_CMD_CAMERA_DEFAULT)
 		
-		wx.EVT_CONTEXT_MENU(self, self.evt_context_menu)
+		self.Bind(wx.EVT_CONTEXT_MENU, self.evt_context_menu)
 
 	def __del__(self):
-		if mymcsup != None:
-			mymcsup.delete_icon_renderer()
+		if mymcicon != None:
+			mymcicon.delete_icon_renderer()
 
 	def update_menu(self, menu):
 		"""Update the content menu according to the current config."""
@@ -371,9 +379,9 @@ class icon_window(wx.Window):
 			return
 		
 		if icon_sys == None or icon == None:
-			r = mymcsup.load_icon(None, 0, None, 0)
+			r = mymcicon.load_icon(None, 0, None, 0)
 		else:
-			r = mymcsup.load_icon(icon_sys, len(icon_sys),
+			r = mymcicon.load_icon(icon_sys, len(icon_sys),
 					      icon, len(icon))
 		if r != 0:
 			print "load_icon", r
@@ -390,7 +398,7 @@ class icon_window(wx.Window):
 		config.light_dirs = mkvec4arr3(light_dirs)
 		config.light_colours = mkvec4arr3(light_colours)
 		config.ambient = D3DXVECTOR4(*ambient)
-		if mymcsup.set_config(config) == -1:
+		if mymcicon.set_config(config) == -1:
 			self.failed = True
 
 	def set_lighting(self, id):
@@ -401,14 +409,14 @@ class icon_window(wx.Window):
 		if self.failed:
 			return
 		self.config.animate = animate
-		if mymcsup.set_config(self.config) == -1:
+		if mymcicon.set_config(self.config) == -1:
 			self.failed = True
 		
 	def _set_camera(self, camera):
 		if self.failed:
 			return
-		self.config.camera = mymcsup.D3DXVECTOR3(*camera)
-		if mymcsup.set_config(self.config) == -1:
+		self.config.camera = mymcicon.D3DXVECTOR3(*camera)
+		if mymcicon.set_config(self.config) == -1:
 			self.failed = True
 
 	def set_camera(self, id):
@@ -460,7 +468,7 @@ class gui_config(wx.Config):
 def add_tool(toolbar, id, label, ico):
 	tbsize = toolbar.GetToolBitmapSize()
 	bmp = get_icon_resource_bmp(ico, tbsize)
-	return toolbar.AddLabelTool(id, label, bmp, shortHelp = label)
+	return toolbar.AddTool(id, label, bmp, shortHelp = label)
 
 class gui_frame(wx.Frame):
 	"""The main top level window."""
@@ -502,23 +510,25 @@ class gui_frame(wx.Frame):
 		self.icon_win = None
 
 		size = (750, 350)
-		if mymcsup == None:
+		if mymcicon == None:
 			size = (500, 350)
 		wx.Frame.__init__(self, parent, wx.ID_ANY, title, size = size)
 
-		wx.EVT_CLOSE(self, self.evt_close)
+		self.Bind(wx.EVT_CLOSE, self.evt_close)
 
 		self.config = gui_config()
 		self.title = title
 
 		self.SetIcons(get_icon_resource("mc4.ico"))
-				
-		wx.EVT_MENU(self, self.ID_CMD_EXIT, self.evt_cmd_exit)
-		wx.EVT_MENU(self, self.ID_CMD_OPEN, self.evt_cmd_open)
-		wx.EVT_MENU(self, self.ID_CMD_EXPORT, self.evt_cmd_export)
-		wx.EVT_MENU(self, self.ID_CMD_IMPORT, self.evt_cmd_import)
-		wx.EVT_MENU(self, self.ID_CMD_DELETE, self.evt_cmd_delete)
-		wx.EVT_MENU(self, self.ID_CMD_ASCII, self.evt_cmd_ascii)
+
+		bind_menu = (lambda handler, id:
+			     self.Bind(wx.EVT_MENU, handler, None, id))
+		bind_menu(self.evt_cmd_exit, self.ID_CMD_EXIT)
+		bind_menu(self.evt_cmd_open, self.ID_CMD_OPEN)
+		bind_menu(self.evt_cmd_export, self.ID_CMD_EXPORT)
+		bind_menu(self.evt_cmd_import, self.ID_CMD_IMPORT)
+		bind_menu(self.evt_cmd_delete, self.ID_CMD_DELETE)
+		bind_menu(self.evt_cmd_ascii, self.ID_CMD_ASCII, )
 		
 		filemenu = wx.Menu()
 		filemenu.Append(self.ID_CMD_OPEN, "&Open...",
@@ -541,7 +551,7 @@ class gui_frame(wx.Frame):
 			"Show descriptions in ASCII instead of Shift-JIS")
 
 
-		wx.EVT_MENU_OPEN(self, self.evt_menu_open);
+		self.Bind(wx.EVT_MENU_OPEN, self.evt_menu_open);
 
 		self.CreateToolBar(wx.TB_HORIZONTAL)
 		self.toolbar = toolbar = self.GetToolBar()
@@ -554,7 +564,7 @@ class gui_frame(wx.Frame):
 		toolbar.Realize()
 
 		self.statusbar = self.CreateStatusBar(2,
-						      style = wx.ST_SIZEGRIP)
+						      style = wx.STB_SIZEGRIP)
 		self.statusbar.SetStatusWidths([-2, -1])
 		
 		panel = wx.Panel(self, wx.ID_ANY, (0, 0))
@@ -573,7 +583,7 @@ class gui_frame(wx.Frame):
 		sizer.AddSpacer(5)
 
 		icon_win = None
-		if mymcsup != None:
+		if mymcicon != None:
 			icon_win = icon_window(panel, self)
 			if icon_win.failed:
 				icon_win.Destroy()
@@ -914,7 +924,7 @@ class gui_frame(wx.Frame):
 def run(filename = None):
 	"""Display a GUI for working with memory card images."""
 
-	wx_app = wx.PySimpleApp()
+	wx_app = wx.App()
 	frame = gui_frame(None, "mymc", filename)
 	return wx_app.MainLoop()
 	
