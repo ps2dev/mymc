@@ -646,7 +646,7 @@ else:
 		out = ctypes.create_string_buffer(out_length)
 		if (mylzari_decode(src, len(src), out, out_length, progress)
 		    == -1):
-			raise ValueError, "compressed input is corrupt"
+			raise ValueError("compressed input is corrupt")
 		return ctypes.string_at(out, out_length)
 
 	def encode(src, progress = None):
@@ -654,7 +654,7 @@ else:
 							   progress)
 		# print r, compressed.value, comp_len
 		if r == -1:
-			raise MemoryError, "out of memory during compression"
+			raise MemoryError("out of memory during compression")
 		if compressed.value == None:
 			return ""
 		ret = ctypes.string_at(compressed.value, comp_len.value)

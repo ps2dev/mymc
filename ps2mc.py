@@ -336,7 +336,7 @@ class ps2mc_file(object):
 
 		if (cluster < file_cluster_end
 		    or len(self.fat_chain) != file_cluster_end):
-			raise corrupt, ("file length doesn't match cluster"
+			raise corrupt("file length doesn't match cluster"
 					" chain length", mc.f)
 
 		for i in range(file_cluster_end, n):
@@ -370,7 +370,7 @@ class ps2mc_file(object):
 		
 	def read(self, size = None, eol = None):
 		if self.closed:
-			raise ValueError, "file is closed"
+			raise ValueError("file is closed")
 
 		pos = self._pos
 		cluster_size = self.mc.cluster_size
@@ -397,14 +397,14 @@ class ps2mc_file(object):
 
 	def write(self, out, _set_modified = True):
 		if self.closed:
-			raise ValueError, "file is closed"
+			raise ValueError("file is closed")
 	
 		cluster_size = self.mc.cluster_size
 		pos = self._pos
 		if self._append: 
 			pos = self.length
 		elif not self._write:
-			raise io_error, (EACCES, "file not opened for writing",
+			raise io_error(EACCES, "file not opened for writing",
 					 self.name)
 
 		size = len(out)
@@ -424,7 +424,7 @@ class ps2mc_file(object):
 					buf = "\0" * cluster_size
 				buf = buf[:off] + s + buf[off + l:]
 			if not self.write_file_cluster(cluster, buf):
-				raise io_error, (ENOSPC,
+				raise io_error(ENOSPC,
 						 "out of space on image",
 						 self.name)
 			self._pos = pos
@@ -460,7 +460,7 @@ class ps2mc_file(object):
 
 	def seek(self, offset, whence = 0):
 		if self.closed:
-			raise ValueError, "file is closed"
+			raise ValueError("file is closed")
 
 		if whence == 1:
 			base = self._pos
@@ -473,7 +473,7 @@ class ps2mc_file(object):
 
 	def tell(self):
 		if self.closed:
-			raise ValueError, "file is closed"
+			raise ValueError("file is closed")
 		return self._pos
 
 	def __enter__(self):
@@ -617,8 +617,7 @@ class ps2mc(object):
 		s = f.read(0x154)
 		if len(s) != 0x154 or not s.startswith(PS2MC_MAGIC):
 			if (params == None):
-				raise corrupt, ("Not a PS2 memory card image",
-						f)
+				raise corrupt("Not a PS2 memory card image", f)
 			self.f = f
 			self.format(params)
 		else:
@@ -658,7 +657,7 @@ class ps2mc(object):
 		root.close()
 		if (dot[8] != "." or dotdot[8] != ".."
 		    or not mode_is_dir(dot[0]) or not mode_is_dir(dotdot[0])):
-			raise corrupt, "Root directory damaged."
+			raise corrupt("Root directory damaged.")
 		
 		self.fat_cursor = 0
 		self.curdir = (0, 0)
@@ -699,7 +698,7 @@ class ps2mc(object):
 		 pages_per_erase_block, param_pages_per_card) = params
 
 		if pages_per_erase_block < 1:
-			raise error, ("invalid pages per erase block (%d)"
+			raise error("invalid pages per erase block (%d)"
 				      % page_size)
 			
 		pages_per_card = round_down(param_pages_per_card,
@@ -715,7 +714,7 @@ class ps2mc(object):
 		if (page_size < PS2MC_DIRENT_LENGTH
 		    or pages_per_cluster < 1
 		    or pages_per_cluster * page_size != cluster_size):
-			raise error, "invalid page size (%d)" % page_size
+			raise error("invalid page size (%d)" % page_size)
 		
 		good_block1 = erase_blocks_per_card - 1
 		good_block2 = erase_blocks_per_card - 2
@@ -737,7 +736,7 @@ class ps2mc(object):
 					   * clusters_per_erase_block
 					   - allocatable_cluster_offset)
 		if allocatable_cluster_end < 1:
-			raise error, ("memory card image too small"
+			raise error("memory card image too small"
 				      " to be formatted")
 
 		ifc_list = unpack_fat("\0\0\0\0"
@@ -819,17 +818,17 @@ class ps2mc(object):
 		f.seek(self.raw_page_size * n)
 		page = f.read(self.page_size)
 		if len(page) != self.page_size:
-			raise corrupt, ("attempted to read past EOF"
+			raise corrupt("attempted to read past EOF"
 					" (page %05X)" % n, f)
 		if self.ignore_ecc:
 			return page
 		spare = f.read(self.spare_size)
 		if len(spare) != self.spare_size:
-			raise corrupt, ("attempted to read past EOF"
+			raise corrupt("attempted to read past EOF"
 					" (page %05X)" % n, f)
 		(status, page, spare) = ecc_check_page(page, spare)
 		if status == ECC_CHECK_FAILED:
-			raise ecc_error, ("Unrecoverable ECC error (page %d)"
+			raise ecc_error("Unrecoverable ECC error (page %d)"
 					  % n)
 		return page
 
@@ -838,7 +837,7 @@ class ps2mc(object):
 		f.seek(self.raw_page_size * n)
 		self.modified = True
 		if len(buf) != self.page_size:
-			raise error, ("internal error: write_page:"
+			raise error("internal error: write_page:"
 				      " %d != %d" % (len(buf), self.page_size))
 		f.write(buf)
 		if self.spare_size != 0:
@@ -866,7 +865,7 @@ class ps2mc(object):
 		if self.spare_size == 0:
 			self.f.seek(cluster_size * n)
 			if len(buf) != cluster_size:
-				raise error, ("internal error: write_cluster:"
+				raise error("internal error: write_cluster:"
 					      " %d != %d" % (len(buf),
 							     cluster_size))
 			return self.f.write(buf)
@@ -947,7 +946,7 @@ class ps2mc(object):
 					      
 	def read_fat(self, n):
 		if n < 0 or n >= self.allocatable_cluster_end:
-			raise io_error, (EIO,
+			raise io_error(EIO,
 					 "FAT cluster index out of range"
 					 " (%d)" % n)
 		offset = n % self.entries_per_cluster
@@ -1162,7 +1161,7 @@ class ps2mc(object):
 		"""Create a new directory entry in a directory."""
 
 		if name == "":
-			raise file_not_found, name
+			raise file_not_found(name)
 		
 		# print "@@@ create_dir_ent", parent_dirloc, name
 		dir_ent = self._dirloc_to_ent(parent_dirloc)
@@ -1226,16 +1225,16 @@ class ps2mc(object):
 		"""Delete or truncate the file or directory given by dirloc."""
 		
 		if dirloc == (0, 0):
-			raise io_error, (EACCES,
+			raise io_error(EACCES,
 					 "cannot remove root directory",
 					 name)
 		if dirloc[1] in [0, 1]:
-			raise io_error, (EACCES,
+			raise io_error(EACCES,
 					 'cannot remove "." or ".." entries',
 					 name)
 
 		if dirloc in self.open_files:
-			raise io_error, (EBUSY,
+			raise io_error(EBUSY,
 					 "cannot remove open file", filename)
 
 		epc = self.entries_per_cluster
@@ -1351,13 +1350,13 @@ class ps2mc(object):
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		# print "@@@ open", (dirloc, ent)
 		if dirloc == None:
-			raise path_not_found, filename
+			raise path_not_found(filename)
 		if is_dir:
-			raise io_error, (EISDIR, "not a regular file",
+			raise io_error(EISDIR, "not a regular file",
 					 filename)
 		if ent[0] == 0:
 			if mode[0] not in "wa":
-				raise file_not_found, filename
+				raise file_not_found(filename)
 			name = ent[8]
 			(dirloc, ent) = self.create_dir_entry(dirloc, name,
 							      DF_FILE | DF_RWX
@@ -1372,19 +1371,19 @@ class ps2mc(object):
 	def dir_open(self, filename, mode = "rb"):
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
-			raise path_not_found, filename
+			raise path_not_found(filename)
 		if ent[0] == 0:
-			raise dir_not_found, filename
+			raise dir_not_found(filename)
 		if not is_dir:
-			raise io_error, (ENOTDIR, "not a directory", filename)
+			raise io_error(ENOTDIR, "not a directory", filename)
 		return self.directory(dirloc, ent[4], ent[2], mode, filename)
 
 	def mkdir(self, filename):
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
-			raise path_not_found, filename
+			raise path_not_found(filename)
 		if ent[0] != 0:
-			raise io_error, (EEXIST, "directory exists", filename)
+			raise io_error(EEXIST, "directory exists", filename)
 		name = ent[8]
 		self.create_dir_entry(dirloc, name, DF_DIR | DF_RWX | DF_0400)
 		self.flush()
@@ -1407,16 +1406,16 @@ class ps2mc(object):
 		
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
-			raise path_not_found, filename
+			raise path_not_found(filename)
 		if ent[0] == 0:
-			raise file_not_found, filename
+			raise file_not_found(filename)
 		if is_dir:
 			if ent[4] == 0:
-				raise io_error, (EACCES,
+				raise io_error(EACCES,
 						 "cannot remove"
 						 " root directory")
 			if not self._is_empty(dirloc, ent, filename):
-				raise io_error, (ENOTEMPTY,
+				raise io_error(ENOTEMPTY,
 						 "directory not empty",
 						 filename)
 		self.delete_dirloc(dirloc, False, filename)
@@ -1425,11 +1424,11 @@ class ps2mc(object):
 	def chdir(self, filename):
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
-			raise path_not_found, filename
+			raise path_not_found(filename)
 		if ent[0] == 0:
-			raise dir_not_found, filename
+			raise dir_not_found(filename)
 		if not is_dir:
-			raise io_error, (ENOTDIR, "not a directory", filename)
+			raise io_error(ENOTDIR, "not a directory", filename)
 		self.curdir = dirloc
 
 	def get_mode(self, filename):
@@ -1448,9 +1447,9 @@ class ps2mc(object):
 		
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
-			raise path_not_found, filename
+			raise path_not_found(filename)
 		if ent[0] == 0:
-			raise file_not_found, filename
+			raise file_not_found(filename)
 		return ent
 
 	def set_dirent(self, filename, new_ent):
@@ -1461,9 +1460,9 @@ class ps2mc(object):
 		
 		(dirloc, ent, is_dir) = self.path_search(filename)
 		if dirloc == None:
-			raise path_not_found, filename
+			raise path_not_found(filename)
 		if ent[0] == 0:
-			raise file_not_found, filename
+			raise file_not_found(filename)
 		dir = self._opendir_parent_dirloc(dirloc, "r+b")
 		try:
 			new_ent = list(new_ent)
@@ -1485,23 +1484,23 @@ class ps2mc(object):
 	def rename(self, oldpathname, newpathname):
 		(olddirloc, oldent, is_dir) = self.path_search(oldpathname)
 		if olddirloc == None:
-			raise path_not_found, oldpathname
+			raise path_not_found(oldpathname)
 		if oldent[0] == 0:
-			raise file_not_found, oldpathname
+			raise file_not_found(oldpathname)
 
 		if olddirloc == (0, 0):
-			raise io_error, (EINVAL,
+			raise io_error(EINVAL,
 					 "cannot rename root directory",
 					 oldpathname)
 		if olddirloc in self.open_files:
-			raise io_error, (EBUSY, "cannot rename open file",
+			raise io_error(EBUSY, "cannot rename open file",
 					 newname)
 		
 		(newparentdirloc, newent, x) = self.path_search(newpathname)
 		if newparentdirloc == None:
-			raise path_not_found, newpathname
+			raise path_not_found(newpathname)
 		if newent[0] != 0:
-			raise io_error, (EEXIST, "file exists", newpathname)
+			raise io_error(EEXIST, "file exists", newpathname)
 		newname = newent[8]
 
 		oldparentdirloc = self._get_parent_dirloc(olddirloc)
@@ -1516,7 +1515,7 @@ class ps2mc(object):
 			return
 
 		if is_dir and self.is_ancestor(newparentdirloc, olddirloc):
-			raise io_error, (EINVAL, "cannot move directory"
+			raise io_error(EINVAL, "cannot move directory"
 					 " beneath itself", oldpathname)
 			
 
@@ -1573,11 +1572,11 @@ class ps2mc(object):
 
 		(root_dirloc, ent, is_dir) = self.path_search(dirname)
 		if root_dirloc == None:
-			raise path_not_found, dirname
+			raise path_not_found(dirname)
 		if ent[0] != 0:
 			if ignore_existing:
 				return False
-			raise io_error, (EEXIST, "directory exists", dirname)
+			raise io_error(EEXIST, "directory exists", dirname)
 		name = ent[8]
 		mode = DF_DIR | (dir_ent[0] & ~DF_FILE)
 
@@ -1607,17 +1606,17 @@ class ps2mc(object):
 						(ent, data) = sf.get_file(i)
 						# print "@@@ remove", ent[8]
 						self.remove(dirname + ent[8])
-				except EnvironmentError, why:
-					# print "@@@ failed", why
+				except EnvironmentError as e:
+					# print "@@@ failed", e
 					pass
 			
 				try:
 					# print "@@@ remove dir", dirname
 					self.remove(dirname)
-				except EnvironmentError, why:
-					# print "@@@ failed", why
+				except EnvironmentError as e:
+					# print "@@@ failed", e
 					pass
-				raise type, what, where
+				raise Exception(type, what, where)
 			finally:
 				del where
 
@@ -1644,13 +1643,13 @@ class ps2mc(object):
 	def export_save_file(self, filename):
 		(dir_dirloc, dirent, is_dir) = self.path_search(filename)
 		if dir_dirloc == None:
-			raise path_not_found, filename
+			raise path_not_found(filename)
 		if dirent[0] == 0:
-			raise dir_not_found, filename
+			raise dir_not_found(filename)
 		if not is_dir:
-			raise io_error, (ENOTDIR, "not a directory", filename)
+			raise io_error(ENOTDIR, "not a directory", filename)
 		if dir_dirloc == (0, 0):
-			raise io_error, (EACCES, "can't export root directory",
+			raise io_error(EACCES, "can't export root directory",
 					 filename)
 		sf = ps2save.ps2_save_file()
 		files = []
@@ -1711,13 +1710,13 @@ class ps2mc(object):
 		
 		(dirloc, ent, is_dir) = self.path_search(dirname)
 		if dirloc == None:
-			raise path_not_found, dirname
+			raise path_not_found(dirname)
 		if ent[0] == 0:
-			raise dir_not_found, dirname
+			raise dir_not_found(dirname)
 		if not is_dir:
-			raise io_error, (ENOTDIR, "not a directory", dirname)
+			raise io_error(ENOTDIR, "not a directory", dirname)
 		if dirloc == (0, 0):
-			raise io_error, (EACCES, "can't delete root directory",
+			raise io_error(EACCES, "can't delete root directory",
 					 dirname)
 
 		if dirname != "" and dirname[-1] != "/":
@@ -1812,7 +1811,7 @@ class ps2mc(object):
 
 		fat_len = int(str(self.allocatable_cluster_end)) 
 		if not isinstance(fat_len, int):
-			raise error, "Memory card image too big to check."
+			raise error("Memory card image too big to check.")
 
 		fat = array.array('B', [0]) * fat_len
 

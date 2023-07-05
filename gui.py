@@ -634,22 +634,22 @@ class gui_frame(wx.Frame):
 		if self.mc != None:
 			try:
 				self.mc.close()
-			except EnvironmentError, value:
-				self.mc_error(value)
+			except EnvironmentError as e:
+				self.mc_error(e)
 			self.mc = None
 		if self.f != None:
 			try:
 				self.f.close()
-			except EnvironmentError, value:
-				self.mc_error(value)
+			except EnvironmentError as e:
+				self.mc_error(e)
 			self.f = None
 		self.mcname = None
 		
 	def refresh(self):
 		try:
 			self.dirlist.update(self.mc)
-		except EnvironmentError, value:
-			self.mc_error(value)
+		except EnvironmentError as e:
+			self.mc_error(e)
 			self._close_mc()
 			self.dirlist.update(None)
 
@@ -676,7 +676,7 @@ class gui_frame(wx.Frame):
 		try:
 			f = file(filename, "r+b")
 			mc = ps2mc.ps2mc(f)
-		except EnvironmentError, value:
+		except EnvironmentError as e:
 			if f != None:
 				f.close()
 			self.mc_error(value, filename)
@@ -718,8 +718,8 @@ class gui_frame(wx.Frame):
 				icon = f.read()
 			finally:
 				f.close()
-		except EnvironmentError, value:
-			print "icon failed to load", value
+		except EnvironmentError as e:
+			print "icon failed to load", e
 			self.icon_win.load_icon(None, None)
 			return
 
@@ -758,8 +758,8 @@ class gui_frame(wx.Frame):
 				sf = mc.export_save_file("/" + dirname)
 				longname = ps2save.make_longname(dirname, sf)
 				sfiles.append((dirname, sf, longname))
-			except EnvironmentError, value:
-				self.mc_error(value. dirname)
+			except EnvironmentError as e:
+				self.mc_error(e.dirname)
 
 		if len(sfiles) == 0:
 			return
@@ -786,8 +786,8 @@ class gui_frame(wx.Frame):
 						sf.save_ems(f)
 				finally:
 					f.close()
-			except EnvironmentError, value:
-				self.mc_error(value, fn)
+			except EnvironmentError as e:
+				self.mc_error(e, fn)
 				return
 
 			dir = os.path.dirname(fn)
@@ -808,8 +808,8 @@ class gui_frame(wx.Frame):
 				sf.save_ems(f)
 				f.close()
 				count += 1
-			except EnvironmentError, value:
-				self.mc_error(value, fn)
+			except EnvironmentError as e:
+				self.mc_error(e, fn)
 		if count > 0:
 			if os.path.isabs(dir):
 				self.config.set_savefile_dir(dir)
@@ -868,8 +868,8 @@ class gui_frame(wx.Frame):
 			try:
 				self._do_import(fn)
 				success = fn
-			except EnvironmentError, value:
-				self.mc_error(value, fn)
+			except EnvironmentError as e:
+				self.mc_error(e, fn)
 
 		if success != None:
 			dir = os.path.dirname(success)
@@ -904,8 +904,8 @@ class gui_frame(wx.Frame):
 		for dn in dirnames:
 			try:
 				mc.rmdir("/" + dn)
-			except EnvironmentError, value:
-				self.mc_error(value, dn)
+			except EnvironmentError as e:
+				self.mc_error(e, dn)
 
 		mc.check()
 		self.refresh()

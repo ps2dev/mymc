@@ -50,7 +50,7 @@ if os.name == "nt":
 
 		def __setattr__(self, name, value):
 			if name == "encoding":
-				raise TypeError, "readonly attribute"
+				raise TypeError("readonly attribute")
 			return setattr(object.__getattribute__(self, "_f"),
 				       name, value)
 
@@ -218,12 +218,12 @@ def do_import(cmd, mc, opts, args, opterr):
 			elif ftype == "sps":
 				sf.load_sharkport(f)
 			elif ftype == "npo":
-				raise io_error, (EIO, "nPort saves"
+				raise io_error((EIO, "nPort saves"
 						 " are not supported.",
-						 filename)
+						 filename))
 			else:
-				raise io_error, (EIO, "Save file format not"
-						 " recognized", filename)
+				raise io_error((EIO, "Save file format not"
+						 " recognized", filename))
 		finally:
 			f.close()
 		dirname = opts.directory
@@ -447,7 +447,7 @@ def do_format(cmd, mcname, opts, args, opterr):
 		except EnvironmentError:
 			exists = False
 		if exists:
-			raise io_error, (EEXIST, "file exists", mcname)
+			raise io_error(EEXIST, "file exists", mcname)
 
 	f = file(mcname, "w+b")
 	try:
@@ -688,7 +688,7 @@ class suboption_parser(optparse.OptionParser):
 	def exit(self, status = 0, msg = None):
 		if msg:
 			sys.stderr.write(msg)
-		raise subopt_error, status
+		raise subopt_error(status)
 
 class my_help_formatter(optparse.IndentedHelpFormatter):
 	"""A better formatter for optparser's help message"""
@@ -791,12 +791,12 @@ def main():
 				# print "f.close()"
 				f.close()
 
-	except EnvironmentError, value:
-		if getattr(value, "filename", None) != None:
-			write_error(value.filename, value.strerror)
+	except EnvironmentError as e:
+		if getattr(e, "filename", None) != None:
+			write_error(e.filename, e.strerror)
 			ret = 1
-		elif getattr(value, "strerror", None) != None:
-			write_error(mcname, value.strerror)
+		elif getattr(e, "strerror", None) != None:
+			write_error(mcname, e.strerror)
 			ret = 1
 		else:		
 			# something weird
@@ -804,14 +804,14 @@ def main():
 		if opts.debug:
 			raise
 
-	except subopt_error, (ret,):
+	except subopt_error:
 		pass
 	
-	except (ps2mc.error, ps2save.error), value:
-		fn = getattr(value, "filename", None)
+	except (ps2mc.error, ps2save.error) as e:
+		fn = getattr(e, "filename", None)
 		if fn == None:
 			fn = mcname
-		write_error(fn, str(value))
+		write_error(fn, str(e))
 		if opts.debug:
 			raise
 		ret = 1
