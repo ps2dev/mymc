@@ -620,7 +620,7 @@ def make_longname(dirname, sf):
 	crc = binascii.crc32("")
 	for (ent, data) in sf:
 		crc = binascii.crc32(data, crc)
- 	if len(dirname) >= 12 and (dirname[0:2] in ("BA", "BJ", "BE", "BK")):
+	if len(dirname) >= 12 and (dirname[0:2] in ("BA", "BJ", "BE", "BK")):
 		if dirname[2:6] == "DATA":
 			title = ""
 		else:

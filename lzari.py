@@ -151,7 +151,7 @@ class lzari_codec(object):
 		
 	def search(self, table, x):
 		c = 1
-	        s = len(table) - 1
+		s = len(table) - 1
 		while True:
 			a = (s + c) / 2
 			if table[a] <= x:
@@ -179,11 +179,11 @@ class lzari_codec(object):
 		freq = sym_freq[symbol]
 		new_symbol = symbol
 		while self.sym_freq[new_symbol - 1] == freq:
-		        new_symbol -= 1
+			new_symbol -= 1
 		# new_symbol = sym_freq.index(freq)
 		if new_symbol != symbol:
 			symbol_to_char = self.symbol_to_char
-		        swap_char = symbol_to_char[new_symbol]
+			swap_char = symbol_to_char[new_symbol]
 			char = symbol_to_char[symbol]
 			symbol_to_char[new_symbol] = char
 			symbol_to_char[symbol] = swap_char
@@ -195,7 +195,7 @@ class lzari_codec(object):
 		sym_freq = self.sym_freq
 		sym_cum = self.sym_cum
 		
-	        if sym_cum[0] >= MAX_CUM:
+		if sym_cum[0] >= MAX_CUM:
 			c = 0
 			for i in range(MAX_CHAR, 0, -1):
 				sym_cum[i] = c
@@ -206,10 +206,10 @@ class lzari_codec(object):
 		freq = sym_freq[symbol]
 		new_symbol = symbol
 		while sym_freq[new_symbol - 1] == freq:
-		        new_symbol -= 1
+			new_symbol -= 1
 		if new_symbol != symbol:
 			debug(new_symbol, "a")
-		        swap_char = self.symbol_to_char[new_symbol]
+			swap_char = self.symbol_to_char[new_symbol]
 			char = self.symbol_to_char[symbol]
 			self.symbol_to_char[new_symbol] = char
 			self.symbol_to_char[symbol] = swap_char
@@ -272,7 +272,7 @@ class lzari_codec(object):
 				    or self.high > QUADRANT3):
 					if self.high > QUADRANT2:
 						return pos
- 				else:
+				else:
 					self.low -= QUADRANT1
 					self.code -= QUADRANT1
 					self.high -= QUADRANT1

@@ -934,11 +934,11 @@ if __name__ == "__main__":
 
 	run("test.ps2")
 
- 	gc.collect()
- 	for o in gc.garbage:
- 		print()
- 		print(o)
- 		if type(o) == ps2mc.ps2mc_file:
+	gc.collect()
+	for o in gc.garbage:
+		print()
+		print(o)
+		if type(o) == ps2mc.ps2mc_file:
  			for m in dir(o):
  				print(m, getattr(o, m))
 
