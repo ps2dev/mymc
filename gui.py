@@ -347,7 +347,7 @@ class icon_window(wx.Window):
 		r = mymcicon.init_icon_renderer(focus.GetHandle(),
 					       self.GetHandle())
 		if r == -1:
-			print "init_icon_renderer failed"
+			print("init_icon_renderer failed")
 			self.failed = True
 			return
 		
@@ -384,7 +384,7 @@ class icon_window(wx.Window):
 			r = mymcicon.load_icon(icon_sys, len(icon_sys),
 					      icon, len(icon))
 		if r != 0:
-			print "load_icon", r
+			print("load_icon", r)
 			self.failed = True
 
 	def _set_lighting(self, lighting, vertex_diffuse, alt_lighting,
@@ -719,7 +719,7 @@ class gui_frame(wx.Frame):
 			finally:
 				f.close()
 		except EnvironmentError as e:
-			print "icon failed to load", e
+			print("icon failed to load", e)
 			self.icon_win.load_icon(None, None)
 			return
 
@@ -936,11 +936,11 @@ if __name__ == "__main__":
 
  	gc.collect()
  	for o in gc.garbage:
- 		print 
- 		print o
+ 		print()
+ 		print(o)
  		if type(o) == ps2mc.ps2mc_file:
  			for m in dir(o):
- 				print m, getattr(o, m)
+ 				print(m, getattr(o, m))
 
 
 # 	while True:
@@ -954,7 +954,7 @@ if __name__ == "__main__":
 # 					    or m == "__dict__"
 # 					    or m == "__weakref__"):
 # 						continue
-# 					print m
+# 					print(m)
 # 					setattr(o, m, None)
 # 					o = None
 # 					break

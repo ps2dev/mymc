@@ -346,8 +346,8 @@ class ps2_save_file(object):
 			(ent, data) = self.get_file(i)
 			f.write(pack_dirent(ent))
 			if not mode_is_file(ent[0]):
-				# print ent
-				# print hex(ent[0])
+				# print(ent)
+				# print(hex(ent[0]))
 				raise error("Directory has a subdirectory.")
 			f.write(data)
 			f.write("\0" * (round_up(len(data), cluster_size)
@@ -371,7 +371,7 @@ class ps2_save_file(object):
 				raise eof(f)
 			(l, name) = struct.unpack("<L32s", s[off : off + 36])
 			name = zero_terminate(name)
-			# print "%08x %08x %s" % (off, l, name)
+			# print("%08x %08x %s" % (off, l, name))
 			off += 36
 			data = s[off : off + l]
 			if len(data) != l:

@@ -56,7 +56,7 @@ MAX_CHAR = (256 + MAX_MATCH_LEN - MIN_MATCH_LEN + 1)
 MAX_SUFFIX_CHAIN = 50	# limit on how many identical suffixes to try to match
 
 #def debug(value, msg):
-#	print "@@@ %s %04x" % (msg, value)
+#	print("@@@ %s %04x" % (msg, value))
 debug = lambda value, msg: None
 
 _tr_16 = string.maketrans("0123456789abcdef",
@@ -437,11 +437,11 @@ class lzari_codec(object):
 		r = self.add_suffix_2(pos, find)
 		start_pos = self.start_pos
 		if find and r[0] != None:
-			print ("%4d %02x %4d %2d"
+			print("%4d %02x %4d %2d"
 			       % (pos - start_pos, ord(self.src[pos]),
 				  r[0] - start_pos, r[1]))
 		else:
-			print ("%4d %02x"
+			print("%4d %02x"
 				       % (pos - start_pos, ord(self.src[pos])))
 		return r
 	
@@ -570,7 +570,7 @@ class lzari_codec(object):
 
 		#for k, v in sorted(self.suffix_table.items()):
 		#	count, head, table2, chars = v
-		#	print hexlify(k), count, head, len(table2), chars
+		#	print(hexlify(k), count, head, len(table2), chars)
 			
 		if progress:
 			sys.stderr.write("%s100%%\n" % progress)
@@ -652,7 +652,7 @@ else:
 	def encode(src, progress = None):
 		(r, compressed, comp_len) = mylzari_encode(src, len(src),
 							   progress)
-		# print r, compressed.value, comp_len
+		# print(r, compressed.value, comp_len)
 		if r == -1:
 			raise MemoryError("out of memory during compression")
 		if compressed.value == None:
@@ -679,7 +679,7 @@ def main2(args):
 		now = os.times()
 	out.write(dest)
 	out.close()
-	print "time:", now[0] - start[0], now[1] - start[1], now[4] - start[4]
+	print("time:", now[0] - start[0], now[1] - start[1], now[4] - start[4])
 
 
 def _get_hotshot_lineinfo(filename):
@@ -703,10 +703,10 @@ def _dump_hotshot_lineinfo(log):
 	total_time = sum((time[1]
 			  for (loc, time) in a))
 	for (loc, [count, time]) in a:
-		print ("%8d %6.3f%%  %8d %6.3f%%"
+		print("%8d %6.3f%%  %8d %6.3f%%"
 		       % (time, time * 100.0 / total_time,
 			  count, count * 100.0 / total_count)),
-		print "%s:%d(%s)" % loc
+		print("%s:%d(%s)" % loc)
 
 def _dump_hotshot_lineinfo2(log):
 	cur = None
@@ -719,7 +719,7 @@ def _dump_hotshot_lineinfo2(log):
 		if cur != filename:
 			if cur != None and f != None:
 				for line in f:
-					print line[:-1]
+					print(line[:-1])
 				f.close()
 			try:
 				f = file(filename, "r")
@@ -727,17 +727,17 @@ def _dump_hotshot_lineinfo2(log):
 				f = None
 			cur = filename
 			l = 0
-			print "#", filename
+			print("#", filename)
 		if f != None:
 			while l < lineno:
-				print f.readline()[:-1]
+				print(f.readline()[:-1])
 				l += 1
-		print ("# %8d %6.3f%%  %8d %6.3f%%"
+		print("# %8d %6.3f%%  %8d %6.3f%%"
 		       % (time, time * 100.0 / total_time,
 			  count, count * 100.0 / total_count))
 	if cur != None and f != None:
 		for line in f:
-			print line[:-1]
+			print(line[:-1])
 		f.close()
 	
 def main(args):
@@ -747,7 +747,7 @@ def main(args):
 		import profile
 		pr = profile.Profile()
 		for i in range(5):
-			print pr.calibrate(100000)
+			print(pr.calibrate(100000))
 		return
 	elif args[1] == "p":
 		import profile

@@ -88,10 +88,10 @@ def _ecc_check(s, ecc):
 	if computed == ecc:
 		return ECC_CHECK_OK
 
-	#print
+	#print()
 	#_print_bin(0, s.tostring())
-	#print "computed %02x %02x %02x" % tuple(computed)
-	#print "actual %02x %02x %02x" % tuple(ecc)
+	#print("computed %02x %02x %02x" % tuple(computed))
+	#print("actual %02x %02x %02x" % tuple(ecc))
 	
 	# ECC mismatch
 		
@@ -101,17 +101,17 @@ def _ecc_check(s, ecc):
 	lp_comp = lp0_diff ^ lp1_diff
 	cp_comp = (cp_diff >> 4) ^ (cp_diff & 0x07)
 
-	#print "%02x %02x %02x %02x %02x" % (cp_diff, lp0_diff, lp1_diff,
-	#				    lp_comp, cp_comp)
+	#print("%02x %02x %02x %02x %02x" % (cp_diff, lp0_diff, lp1_diff,
+	#				    lp_comp, cp_comp))
 
 	if lp_comp == 0x7F and cp_comp == 0x07:
-		print "corrected 1"
+		print("corrected 1")
 		# correctable 1 bit error in data
 		s[lp1_diff] ^= 1 << (cp_diff >> 4)
 		return ECC_CHECK_CORRECTED
 	if ((cp_diff == 0 and lp0_diff == 0 and lp1_diff == 0)
 	      or _popcount(lp_comp) + _popcount(cp_comp) == 1):
-		print "corrected 2"
+		print("corrected 2")
 		# correctable 1 bit error in ECC
 		# (and/or one of the unused bits was set)
 		ecc[0] = computed[0]
@@ -171,7 +171,7 @@ else:
 
 	def ecc_check(s, ecc):
 		cs = ctypes.c_ubyte.from_address(s.buffer_info()[0])
-		# print "%08X" % s.buffer_info()[0]
+		# print("%08X" % s.buffer_info()[0])
 		aecc = array.array('B', ecc)
 		cecc = ctypes.c_ubyte.from_address(aecc.buffer_info()[0])
 		ret = mymcsup.ecc_check(cs, len(s), cecc)

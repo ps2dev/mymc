@@ -229,10 +229,10 @@ def do_import(cmd, mc, opts, args, opterr):
 		dirname = opts.directory
 		if dirname == None:
 			dirname = sf.get_directory()[8]
-		print "Importing", filename, "to", dirname
+		print("Importing", filename, "to", dirname)
 		if not mc.import_save_file(sf, opts.ignore_existing,
 						opts.directory):
-			print (filename + ": already in memory card image,"
+			print(filename + ": already in memory card image,"
 			       " ignored.")
 
 #re_num = re.compile("[0-9]+")
@@ -277,7 +277,7 @@ def do_export(cmd, mc, opts, args, opterr):
 			
 		f = file(filename, "wb")
 		try:
-			print "Exporing", dirname, "to", filename
+			print("Exporing", dirname, "to", filename)
 			
 			if opts.type == "max":
 				sf.save_max_drive(f)
@@ -326,7 +326,7 @@ def do_setmode(cmd, mc, opts, args, opterr):
 		ent = mc.get_dirent(arg)
 		if value == None:
 			ent[0] = (ent[0] & clear_mask) | set_mask
-			# print "new %04x" % ent[0]
+			# print("new %04x" % ent[0])
 		else:
 			ent[0] = value
 		mc.set_dirent(arg, ent)
@@ -394,10 +394,10 @@ def do_dir(cmd, mc, opts, args, opterr):
 			if type != None:
 				protection = type
 				
-			print "%-32s %s" % (ent[8], title[0])
-			print ("%4dKB %-25s %s"
+			print("%-32s %s" % (ent[8], title[0]))
+			print("%4dKB %-25s %s"
 			       % (length / 1024, protection, title[1]))
-			print
+			print()
 	finally:
 		if f != None:
 			f.close()
@@ -412,18 +412,18 @@ def do_dir(cmd, mc, opts, args, opterr):
 	else:
 		free = "%d" % free
 
-	print free + " KB Free"
+	print(free + " KB Free")
 
 def do_df(cmd, mc, opts, args, opterr):
 	if len(args) != 0:
 		opterr("Incorrect number of arguments.")
-	print mc.f.name + ":", mc.get_free_space(), "bytes free."
+	print(mc.f.name + ":", mc.get_free_space(), "bytes free.")
 
 def do_check(cmd, mc, opts, args, opterr):
 	if len(args) != 0:
 		opterr("Incorrect number of arguments.")
 	if mc.check():
-		print "No errors found."
+		print("No errors found.")
 		return 0
 	return 1
 	
@@ -488,11 +488,11 @@ _trans = string.maketrans("".join(map(chr, range(32))), " " * 32)
 
 def _print_bin(base, s):
 	for off in range(0, len(s), 16):
-		print "%04X" % (base + off),
+		print("%04X" % (base + off))
 		a = s[off : off + 16]
 		for b in a:
-			print "%02X" % ord(b),
-		print "", a.translate(_trans)
+			print("%02X" % ord(b))
+		print("", a.translate(_trans))
 	
 def _print_erase_block(mc, n):
 	ppb = mc.pages_per_erase_block
@@ -503,9 +503,9 @@ def _print_erase_block(mc, n):
 		print
 		
 def do_print_good_blocks(cmd, mc, opts, args, opterr):
-	print "good_block2:"
+	print("good_block2:")
 	_print_erase_block(mc, mc.good_block2)
-	print "good_block1:"
+	print("good_block1:")
 	_print_erase_block(mc, mc.good_block1)
 
 def do_ecc_check(cmd, mc, opts, args, opterr):
@@ -513,7 +513,7 @@ def do_ecc_check(cmd, mc, opts, args, opterr):
 		try:
 			mc.read_page(i)
 		except ps2mc.ecc_error:
-			print "bad: %05x" % i
+			print("bad: %05x" % i)
 
 opt = optparse.make_option
 
@@ -788,7 +788,7 @@ def main():
 			if mc != None:
 				mc.close()
 			if f != None:
-				# print "f.close()"
+				# print("f.close()")
 				f.close()
 
 	except EnvironmentError as e:
