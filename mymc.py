@@ -713,7 +713,7 @@ class my_help_formatter(optparse.IndentedHelpFormatter):
 		return "\n".join(lines) + "\n"
 
 def main():
-	prog = sys.argv[0].decode(sys.getdefaultencoding(), "replace")
+	prog = sys.argv[0]
 	usage = "usage: %prog [-ih] memcard.ps2 command [...]"
 	description = ("Manipulate PS2 memory card images.\n\n"
 		       "Supported commands: ")
