@@ -674,12 +674,12 @@ class gui_frame(wx.Frame):
 		
 		f = None
 		try:
-			f = file(filename, "r+b")
+			f = open(filename, "r+b")
 			mc = ps2mc.ps2mc(f)
 		except EnvironmentError as e:
 			if f != None:
 				f.close()
-			self.mc_error(value, filename)
+			self.mc_error(e, filename)
 			self.SetTitle(self.title)
 			self.refresh()
 			return
@@ -778,7 +778,7 @@ class gui_frame(wx.Frame):
 			if fn == "":
 				return
 			try:
-				f = file(fn, "wb")
+				f = open(fn, "wb")
 				try:
 					if fn.endswith(".max"):
 						sf.save_max_drive(f)
@@ -804,7 +804,7 @@ class gui_frame(wx.Frame):
 		for (dirname, sf, longname) in sfiles:
 			fn = os.path.join(dir, longname) + ".psu"
 			try:
-				f = file(fn, "wb")
+				f = open(fn, "wb")
 				sf.save_ems(f)
 				f.close()
 				count += 1
@@ -819,7 +819,7 @@ class gui_frame(wx.Frame):
 
 	def _do_import(self, fn):
 		sf = ps2save.ps2_save_file()
-		f = file(fn, "rb")
+		f = open(fn, "rb")
 		try:
 			ft = ps2save.detect_file_type(f)
 			f.seek(0)

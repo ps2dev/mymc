@@ -157,7 +157,7 @@ def do_extract(cmd, mc, opts, args, opterr):
 		if opts.use_stdout:
 			opterr("The -o and -p options are mutually exclusive.")
 		dont_close_out = True
-		out = file(opts.output, "wb")
+		out = open(opts.output, "wb")
 	elif opts.use_stdout:
 		out = sys.stdout
 
@@ -169,7 +169,7 @@ def do_extract(cmd, mc, opts, args, opterr):
 					_copy(out, f)
 					continue
 				a = filename.split("/")
-				o = file(a[-1], "wb")
+				o = open(a[-1], "wb")
 				try:
 					_copy(o, f)
 				finally:
@@ -205,7 +205,7 @@ def do_import(cmd, mc, opts, args, opterr):
 		
 	for filename in args:
 		sf = ps2save.ps2_save_file()
-		f = file(filename, "rb")
+		f = open(filename, "rb")
 		try:
 			ftype = ps2save.detect_file_type(f)
 			f.seek(0)
@@ -275,7 +275,7 @@ def do_export(cmd, mc, opts, args, opterr):
 					continue
 				raise io_error(EEXIST, "File exists", filename)
 			
-		f = file(filename, "wb")
+		f = open(filename, "wb")
 		try:
 			print("Exporing", dirname, "to", filename)
 			
@@ -443,13 +443,13 @@ def do_format(cmd, mcname, opts, args, opterr):
 	if not opts.overwrite_existing:
 		exists = True
 		try:
-			file(mcname, "rb").close()
+			open(mcname, "rb").close()
 		except EnvironmentError:
 			exists = False
 		if exists:
 			raise io_error(EEXIST, "file exists", mcname)
 
-	f = file(mcname, "w+b")
+	f = open(mcname, "w+b")
 	try:
 		ps2mc.ps2mc(f, True, params).close()
 	finally:
@@ -780,7 +780,7 @@ def main():
 				ret = fn(cmd, mcname, subopts, subargs,
 					 subopt_parser.error)
 			else:
-				f = file(mcname, mode)
+				f = open(mcname, mode)
 				mc = ps2mc.ps2mc(f, opts.ignore_ecc)
 				ret = fn(cmd, mc, subopts, subargs,
 					 subopt_parser.error)

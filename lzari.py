@@ -665,9 +665,9 @@ def main2(args):
 	import struct
 	import os
 	
-	src = file(args[2], "rb").read()
+	src = open(args[2], "rb").read()
 	lzari = lzari_codec()
-	out = file(args[3], "wb")
+	out = open(args[3], "wb")
 	start = os.times()
 	if args[1] == "c":
 		dest = lzari.encode(src)
@@ -722,7 +722,7 @@ def _dump_hotshot_lineinfo2(log):
 					print(line[:-1])
 				f.close()
 			try:
-				f = file(filename, "r")
+				f = open(filename, "r")
 			except OSError:
 				f = None
 			cur = filename
