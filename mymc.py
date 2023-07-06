@@ -484,7 +484,7 @@ def do_create_pad(cmd, mc, opts, args, opterr):
 def do_frob(cmd, mc, opts, args, opterr):
 	mc.write_superblock()
 
-_trans = string.maketrans("".join(map(chr, range(32))), " " * 32)
+_trans = str.maketrans("".join(map(chr, range(32))), " " * 32)
 
 def _print_bin(base, s):
 	for off in range(0, len(s), 16):

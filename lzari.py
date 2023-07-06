@@ -59,15 +59,15 @@ MAX_SUFFIX_CHAIN = 50	# limit on how many identical suffixes to try to match
 #	print("@@@ %s %04x" % (msg, value))
 debug = lambda value, msg: None
 
-_tr_16 = string.maketrans("0123456789abcdef",
+_tr_16 = str.maketrans("0123456789abcdef",
 			  "\x00\x01\x02\x03"
 			  "\x10\x11\x12\x13"
 			  "\x20\x21\x22\x23"
 			  "\x30\x31\x32\x33")
-_tr_4 = string.maketrans("0123",
+_tr_4 = str.maketrans("0123",
 			 "\x00\x01"
 			 "\x10\x11")
-_tr_2 = string.maketrans("01", "\x00\x01")
+_tr_2 = str.maketrans("01", "\x00\x01")
 
 def string_to_bit_array(s):
 	"""Convert a string to an array containing a sequence of bits."""
@@ -77,11 +77,11 @@ def string_to_bit_array(s):
 	a = array.array('B', s)
 	return a
 
-_tr_rev_2 = string.maketrans("\x00\x01", "01")
-_tr_rev_4 = string.maketrans("\x00\x01"
+_tr_rev_2 = str.maketrans("\x00\x01", "01")
+_tr_rev_4 = str.maketrans("\x00\x01"
 			     "\x10\x11",
 			     "0123")
-_tr_rev_16 = string.maketrans("\x00\x01\x02\x03"
+_tr_rev_16 = str.maketrans("\x00\x01\x02\x03"
 			      "\x10\x11\x12\x13"
 			      "\x20\x21\x22\x23"
 			      "\x30\x31\x32\x33",

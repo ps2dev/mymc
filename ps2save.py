@@ -601,8 +601,8 @@ else:
 	_bad_filename_chars2 = _bad_filename_chars + "?*'&|:[<>] \\\""
 	_bad_filename_repl2 = _bad_filename_repl +   "______(())___"
 
-_filename_trans = string.maketrans(_bad_filename_chars, _bad_filename_repl);
-_filename_trans2 = string.maketrans(_bad_filename_chars2, _bad_filename_repl2);
+_filename_trans = str.maketrans(_bad_filename_chars, _bad_filename_repl);
+_filename_trans2 = str.maketrans(_bad_filename_chars2, _bad_filename_repl2);
 
 def fix_filename(filename):
 	"""Replace illegal or problematic characters from a filename."""
