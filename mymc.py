@@ -337,7 +337,7 @@ def do_rename(cmd, mc, opts, args, opterr):
 	mc.rename(args[0], args[1])
 	
 def _get_ps2_title(mc, enc):
-	s = mc.get_icon_sys(".");
+	s = mc.get_icon_sys(".")
 	if s == None:
 		return None
 	a = ps2save.unpack_icon_sys(s)

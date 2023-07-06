@@ -12,6 +12,7 @@ _SCCS_ID = "@(#) mymc ps2mc_dir.py 1.4 12/10/04 19:11:08\n"
 import struct
 import time
 import calendar
+import os
 
 PS2MC_DIRENT_LENGTH = 512
 

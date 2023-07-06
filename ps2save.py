@@ -369,14 +369,14 @@ class ps2_save_file(object):
 		off = 0
 		for i in range(dirlen):
 			if len(s) - off < 36:
-				raise eof(f)
+				raise eof(self.f)
 			(l, name) = struct.unpack("<L32s", s[off : off + 36])
 			name = zero_terminate(name)
 			# print("%08x %08x %s" % (off, l, name))
 			off += 36
 			data = s[off : off + l]
 			if len(data) != l:
-				raise eof(f)
+				raise eof(self.f)
 			self.set_file(i,
 				      (DF_RWX | DF_FILE | DF_0400 | DF_EXISTS,
 				       0, l, timestamp, 0, 0, timestamp, 0,

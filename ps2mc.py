@@ -1236,7 +1236,7 @@ class ps2mc(object):
 
 		if dirloc in self.open_files:
 			raise io_error(EBUSY,
-					 "cannot remove open file", filename)
+					 "cannot remove open file", name)
 
 		epc = self.entries_per_cluster
 
