@@ -512,7 +512,7 @@ class ps2mc_directory(object):
 		self.f.write(pack_dirent(ent),
 			     _set_modified = set_modified)
 
-	def next(self):
+	def __next__(self):
 		# print("@@@ next", self.tell(), self.f.name)
 		dirent = self.f.read(PS2MC_DIRENT_LENGTH)
 		if dirent == b"":
