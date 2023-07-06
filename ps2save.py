@@ -7,7 +7,7 @@
 # A simple interface for working with various PS2 save file formats.
 #
 
-_SCCS_ID = "@(#) mymc ps2save.py 1.8 22/01/15 01:25:25\n"
+_SCCS_ID = "@(#) mymc ps2save.py 1.9 23/07/06 19:46:30\n"
 
 import sys
 import os

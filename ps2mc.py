@@ -7,7 +7,7 @@
 
 """Manipulate PS2 memory card images."""
 
-_SCCS_ID = "@(#) mymc ps2mc.py 1.11 22/01/15 01:17:07\n"
+_SCCS_ID = "@(#) mymc ps2mc.py 1.12 23/07/06 19:48:03\n"
 
 import sys
 import array

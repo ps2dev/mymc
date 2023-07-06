@@ -11,7 +11,7 @@ a two level dicitionary look up during compression rather than
 LZARI.C's binary search tree.
 """
 
-_SCCS_ID = "@(#) mymc lzari.py 1.6 12/10/04 19:07:53\n"
+_SCCS_ID = "@(#) mymc lzari.py 1.7 23/07/06 16:03:53\n"
 
 import sys
 import array

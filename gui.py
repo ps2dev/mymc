@@ -7,7 +7,7 @@
 
 """Graphical user-interface for mymc."""
 
-_SCCS_ID = "@(#) mymc gui.py 1.8 22/02/05 19:20:59\n"
+_SCCS_ID = "@(#) mymc gui.py 1.9 23/07/06 19:35:21\n"
 
 import os
 import sys

@@ -7,7 +7,7 @@
 
 """A utility for manipulating PS2 memory card images."""
 
-_SCCS_ID = "@(#) mymc mymc.py 1.13 22/01/15 01:04:45\n"[:-1]
+_SCCS_ID = "@(#) mymc mymc.py 1.14 23/07/06 15:51:52\n"[:-1]
 
 import sys
 import os

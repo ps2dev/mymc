@@ -7,7 +7,7 @@
 
 """Functions for working with PS2 memory card directory entries."""
 
-_SCCS_ID = "@(#) mymc ps2mc_dir.py 1.4 12/10/04 19:11:08\n"
+_SCCS_ID = "@(#) mymc ps2mc_dir.py 1.5 23/07/06 06:30:13\n"
 
 import struct
 import time

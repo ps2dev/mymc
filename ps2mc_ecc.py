@@ -10,7 +10,7 @@ Routines for calculating the Hamming codes, a simple form of error
 correcting codes (ECC), as used on PS2 memory cards.  
 """
 
-_SCCS_ID = "@(#) mymc ps2mc_ecc.py 1.4 07/12/17 02:34:04\n"
+_SCCS_ID = "@(#) mymc ps2mc_ecc.py 1.5 23/07/06 16:03:58\n"
 
 import array
 
