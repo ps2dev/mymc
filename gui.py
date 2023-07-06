@@ -159,7 +159,7 @@ class dirlist_control(wx.ListCtrl):
 
 	def _update_dirtable(self, mc, dir):
 		self.dirtable = table = []
-		enc = "unicode"
+		enc = "utf-8"
 		if self.config.get_ascii():
 			enc = "ascii"
 		for ent in dir:

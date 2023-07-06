@@ -97,7 +97,7 @@ else:
 		return array.array('I', s)
 
 	def pack_32bit_array(a):
-		return a.tostring()
+		return a.tobytes()
 	
 def unpack_superblock(s):
 	sb = struct.unpack("<28s12sHHHHLLLLLL8x128s128sbbxx", s)
@@ -349,7 +349,7 @@ class ps2mc_file(object):
 							 True)
 				return False
 			mc.write_allocatable_cluster(cluster,
-						     ["\0"] * cluster_size)
+						     [b"\0"] * cluster_size)
 		
 		cluster = self._extend_file(n)
 		if cluster == None:
@@ -377,7 +377,7 @@ class ps2mc_file(object):
 		if size == None:
 			size = self.length
 		size = max(min(self.length - pos, size), 0)
-		ret = ""
+		ret = b""
 		while size > 0:
 			off = int(pos % cluster_size)
 			l = min(cluster_size - off, size)
@@ -421,7 +421,7 @@ class ps2mc_file(object):
 			else:
 				buf = self.read_file_cluster(cluster)
 				if buf == None:
-					buf = "\0" * cluster_size
+					buf = b"\0" * cluster_size
 				buf = buf[:off] + s + buf[off + l:]
 			if not self.write_file_cluster(cluster, buf):
 				raise io_error(ENOSPC,
@@ -515,7 +515,7 @@ class ps2mc_directory(object):
 	def next(self):
 		# print("@@@ next", self.tell(), self.f.name)
 		dirent = self.f.read(PS2MC_DIRENT_LENGTH)
-		if dirent == "":
+		if dirent == b"":
 			if 0 == self._iter_end:
 				raise StopIteration
 			self.seek(0)
@@ -615,14 +615,15 @@ class ps2mc(object):
 		
 		f.seek(0)
 		s = f.read(0x154)
-		if len(s) != 0x154 or not s.startswith(PS2MC_MAGIC):
+		header = PS2MC_MAGIC.encode("utf-8")
+		if len(s) != 0x154 or not s[0:len(header)] == header:
 			if (params == None):
 				raise corrupt("Not a PS2 memory card image", f)
 			self.f = f
 			self.format(params)
 		else:
 			sb = unpack_superblock(s)
-			self.version = sb[1]
+			self.version = sb[1].decode("ascii")
 			self.page_size = sb[2]
 			self.pages_per_cluster = sb[3]
 			self.pages_per_erase_block = sb[4]
@@ -663,8 +664,8 @@ class ps2mc(object):
 		self.curdir = (0, 0)
 
 	def write_superblock(self):
-		s = pack_superblock((PS2MC_MAGIC,
-				     self.version,
+		s = pack_superblock((PS2MC_MAGIC.encode("ascii"),
+				     self.version.encode("ascii"),
 				     self.page_size,
 				     self.pages_per_cluster,
 				     self.pages_per_erase_block,
@@ -679,10 +680,10 @@ class ps2mc(object):
 				     self.bad_erase_block_list,
 				     2,
 				     0x2B))
-		s += "\x00" * (self.page_size - len(s))
+		s += b"\x00" * (self.page_size - len(s))
 		self.write_page(0, s)
 
-		page = "\xFF" * self.raw_page_size
+		page = b"\xFF" * self.raw_page_size
 		self.f.seek(self.good_block2 * self.pages_per_erase_block
 			    * self.raw_page_size)
 		for i in range(self.pages_per_erase_block):
@@ -739,7 +740,7 @@ class ps2mc(object):
 			raise error("memory card image too small"
 				      " to be formatted")
 
-		ifc_list = unpack_fat("\0\0\0\0"
+		ifc_list = unpack_fat(b"\0\0\0\0"
 				      * PS2MC_MAX_INDIRECT_FAT_CLUSTERS)
 		for i in range(indirect_fat_clusters):
 			ifc_list[i] = first_ifc + i
@@ -755,19 +756,19 @@ class ps2mc(object):
 		self.good_block1 = good_block1
 		self.good_block2 = good_block2
 		self.indirect_fat_cluster_list = ifc_list
-		bebl = "\xFF\xFF\xFF\xFF" * 32		
+		bebl = b"\xFF\xFF\xFF\xFF" * 32
 		self.bad_erase_block_list = unpack_32bit_array(bebl)
 		
 		self._calculate_derived()
 
 		self.ignore_ecc = not with_ecc
-		erased = "\0" * page_size
+		erased = b"\0" * page_size
 		if not with_ecc:
 			self.spare_size = 0
 		else:
 			ecc = "".join(["".join(map(chr, s))
 				       for s in ecc_calculate_page(erased)])
-			erased += ecc + "\0" * (self.spare_size - len(ecc))
+			erased += ecc.encode("utf-8") + b"\0" * (self.spare_size - len(ecc))
 
 		self.f.seek(0)
 		for page in range(pages_per_card):
@@ -801,7 +802,7 @@ class ps2mc(object):
 		s = pack_dirent((DF_RWX | DF_DIR | DF_0400 | DF_EXISTS,
 				 0, 2, now,
 				 0, 0, now, 0, "."))
-		s += "\0" * (cluster_size - len(s))
+		s += b"\0" * (cluster_size - len(s))
 		self.write_allocatable_cluster(0, s)
 		dir = self._directory((0, 0), 0, 2, "wb", "/")
 		dir.write_raw_ent(1, (DF_WRITE | DF_EXECUTE | DF_DIR | DF_0400
@@ -845,7 +846,7 @@ class ps2mc(object):
 			for s in ecc_calculate_page(buf):
 				a.fromlist(s)
 			a.tofile(f)
-			f.write("\0" * (self.spare_size - len(a)))
+			f.write(b"\0" * (self.spare_size - len(a)))
 			
 	def read_cluster(self, n):
 		pages_per_cluster = self.pages_per_cluster
@@ -1208,7 +1209,7 @@ class ps2mc(object):
 		dirent = pack_dirent((DF_RWX | DF_0400 | DF_DIR | DF_EXISTS,
 				      0, 0, now, dirloc[0], dirloc[1],
 				      now, 0, "."))
-		dirent += "\0" * (self.cluster_size - PS2MC_DIRENT_LENGTH)
+		dirent += b"\0" * (self.cluster_size - PS2MC_DIRENT_LENGTH)
 		self.write_allocatable_cluster(cluster, dirent)
 		dir = self._directory(dirloc, cluster, 1, "wb",
 				      name = "<create_dir_entry temp>")
@@ -1908,8 +1909,8 @@ class ps2mc(object):
 		f = self.open(icon_sys, "rb")
 		s = f.read(964)
 		f.close()
-		if len(s) == 964 and s[0:4] == "PS2D":
-			return s;
+		if len(s) == 964 and s[0:4] == b"PS2D":
+			return s
 		return None
 
 	def dir_size(self, dirname):

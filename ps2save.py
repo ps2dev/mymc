@@ -26,10 +26,10 @@ try:
 except ImportError:
 	lzari = None
 
-PS2SAVE_MAX_MAGIC = "Ps2PowerSave"
-PS2SAVE_SPS_MAGIC = "\x0d\0\0\0SharkPortSave"
-PS2SAVE_CBS_MAGIC = "CFU\0"
-PS2SAVE_NPO_MAGIC = "nPort"
+PS2SAVE_MAX_MAGIC = b"Ps2PowerSave"
+PS2SAVE_SPS_MAGIC = b"\x0d\0\0\0SharkPortSave"
+PS2SAVE_CBS_MAGIC = b"CFU\0"
+PS2SAVE_NPO_MAGIC = b"nPort"
 
 # This is the initial permutation state ("S") for the RC4 stream cipher
 # algorithm used to encrpyt and decrypt Codebreaker saves.
@@ -180,8 +180,8 @@ def shift_jis_conv(src, encoding = None):
 	if encoding == "shift_jis":
 		return src
 	u = src.decode("shift_jis", "replace")
-	if encoding == "unicode":
-		return u
+	if encoding == "utf-8":
+		return u.encode("utf-8")
 	a = []
 	for uc in u:
 		try:
@@ -242,8 +242,9 @@ def icon_sys_title(icon_sys, encoding = None):
 	
 	offset = icon_sys[1]
 	title = icon_sys[14]
-	title2 = shift_jis_conv(title[offset:], encoding)
-	title1 = shift_jis_conv(title[:offset], encoding)
+	encoding = sys.getdefaultencoding() if not encoding else encoding
+	title2 = shift_jis_conv(title[offset:], encoding).decode(encoding)
+	title1 = shift_jis_conv(title[:offset], encoding).decode(encoding)
 	return (title1, title2)
 
 def _read_fixed(f, n):
@@ -350,7 +351,7 @@ class ps2_save_file(object):
 				# print(hex(ent[0]))
 				raise error("Directory has a subdirectory.")
 			f.write(data)
-			f.write("\0" * (round_up(len(data), cluster_size)
+			f.write(b"\0" * (round_up(len(data), cluster_size)
 					- len(data)))
 		f.flush()
 
@@ -427,7 +428,7 @@ class ps2_save_file(object):
 				raise error("Non-file in save file.")
 			s += struct.pack("<L32s", ent[2], ent[8])
 			s += data
-			s += "\0" * (round_up(len(s) + 8, 16) - 8 - len(s))
+			s += b"\0" * (round_up(len(s) + 8, 16) - 8 - len(s))
 		length = len(s)
 		progress =  "compressing " + dirent[8] + ": "
 		compressed = lzari.encode(s, progress)
@@ -617,7 +618,7 @@ def make_longname(dirname, sf):
 		title = icon_sys_title(icon_sys, "ascii")
 		title = title[0] + " " + title[1]
 		title = " ".join(title.split())
-	crc = binascii.crc32("")
+	crc = binascii.crc32(b"")
 	for (ent, data) in sf:
 		crc = binascii.crc32(data, crc)
 	if len(dirname) >= 12 and (dirname[0:2] in ("BA", "BJ", "BE", "BK")):

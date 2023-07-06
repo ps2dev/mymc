@@ -89,7 +89,7 @@ def _copy(fout, fin):
 	
 	while True:
 		s = fin.read(1024)
-		if s == "":
+		if s == b"":
 			break
 		fout.write(s)
 	
@@ -472,7 +472,7 @@ def do_create_pad(cmd, mc, opts, args, opterr):
 	length = mc.clusters_per_card
 	if len(args) > 1:
 		length = int(args[1])
-	pad = "\0" * mc.cluster_size
+	pad = b"\0" * mc.cluster_size
 	f = mc.open(args[0], "wb")
 	try:
 		for i in xrange(length):

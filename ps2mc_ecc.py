@@ -64,7 +64,7 @@ def _ecc_calculate(s):
 	
 	if not isinstance(s, array.array):
 		a = array.array('B')
-		a.fromstring(s)
+		a.frombytes(s)
 		s = a
 	column_parity = 0x77
 	line_parity_0 = 0x7F
@@ -140,15 +140,15 @@ def ecc_check_page(page, spare):
 	chunks = []
 	for i in range(div_round_up(len(page), 128)):
 		a = array.array('B')
-		a.fromstring(page[i * 128 : i * 128 + 128])
-		chunks.append((a, map(ord, spare[i * 3 : i * 3 + 3])))
+		a.frombytes(page[i * 128 : i * 128 + 128])
+		chunks.append((a, list(spare[i * 3 : i * 3 + 3])))
 	
 	r = [ecc_check(s, ecc)
 	     for (s, ecc) in chunks]
 	ret = ECC_CHECK_OK
 	if ECC_CHECK_CORRECTED in r:
 		# rebuild sector and spare from the corrected versions
-		page = "".join([a[0].tostring()
+		page = "".join([a[0].tobytes()
 				for a in chunks])
 		spare = "".join([chr(a[1][i])
 				 for a in chunks
@@ -164,7 +164,7 @@ if mymcsup == None:
 else:
 	# _c_ubyte_p = ctypes.POINTER(ctypes.c_ubyte)
 	def ecc_calculate(s):
-		aecc = array.array('B', "\0\0\0")
+		aecc = array.array('B', b"\0\0\0")
 		cecc = ctypes.c_ubyte.from_address(aecc.buffer_info()[0])
 		mymcsup.ecc_calculate(s, len(s), cecc)
 		return list(aecc)

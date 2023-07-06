@@ -59,15 +59,15 @@ MAX_SUFFIX_CHAIN = 50	# limit on how many identical suffixes to try to match
 #	print("@@@ %s %04x" % (msg, value))
 debug = lambda value, msg: None
 
-_tr_16 = str.maketrans("0123456789abcdef",
-			  "\x00\x01\x02\x03"
-			  "\x10\x11\x12\x13"
-			  "\x20\x21\x22\x23"
-			  "\x30\x31\x32\x33")
-_tr_4 = str.maketrans("0123",
-			 "\x00\x01"
-			 "\x10\x11")
-_tr_2 = str.maketrans("01", "\x00\x01")
+_tr_16 = bytes.maketrans(b"0123456789abcdef",
+			  b"\x00\x01\x02\x03"
+			  b"\x10\x11\x12\x13"
+			  b"\x20\x21\x22\x23"
+			  b"\x30\x31\x32\x33")
+_tr_4 = bytes.maketrans(b"0123",
+			 b"\x00\x01"
+			 b"\x10\x11")
+_tr_2 = bytes.maketrans(b"01", b"\x00\x01")
 
 def string_to_bit_array(s):
 	"""Convert a string to an array containing a sequence of bits."""
@@ -77,15 +77,15 @@ def string_to_bit_array(s):
 	a = array.array('B', s)
 	return a
 
-_tr_rev_2 = str.maketrans("\x00\x01", "01")
-_tr_rev_4 = str.maketrans("\x00\x01"
-			     "\x10\x11",
-			     "0123")
-_tr_rev_16 = str.maketrans("\x00\x01\x02\x03"
-			      "\x10\x11\x12\x13"
-			      "\x20\x21\x22\x23"
-			      "\x30\x31\x32\x33",
-			      "0123456789abcdef")
+_tr_rev_2 = bytes.maketrans(b"\x00\x01", b"01")
+_tr_rev_4 = bytes.maketrans(b"\x00\x01"
+			     b"\x10\x11",
+			     b"0123")
+_tr_rev_16 = bytes.maketrans(b"\x00\x01\x02\x03"
+			      b"\x10\x11\x12\x13"
+			      b"\x20\x21\x22\x23"
+			      b"\x30\x31\x32\x33",
+			      b"0123456789abcdef")
 def bit_array_to_string(a):
 	"""Convert an array containing a sequence of bits to a string."""
 	remainder = len(a) % 8
@@ -584,7 +584,7 @@ class lzari_codec(object):
 		a.fromlist([0] * 32)	 # add some extra bits 
 		self.in_iter = iter(a).next
 
-		out = array.array('B', "\0") * out_length
+		out = array.array('B', b"\0") * out_length
 		outpos = 0
 		
 		self.init(True)
