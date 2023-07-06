@@ -1148,7 +1148,7 @@ class ps2mc(object):
 		start = dir.tell() - 1
 		if start == -1:
 			start = 0
-		for i in range(start, len(dir)) + range(0, start):
+		for i in list(range(start, len(dir))) + list(range(0, start)):
 			try:
 				ent = dir[i]
 			except IndexError:
@@ -1728,7 +1728,7 @@ class ps2mc(object):
 		"""Returns the amount of free space in bytes."""
 		
 		free = 0
-		for i in xrange(self.allocatable_cluster_end):
+		for i in range(self.allocatable_cluster_end):
 			if (self.lookup_fat(i) & PS2MC_FAT_ALLOCATED_BIT) == 0:
 				free += 1
 		return free * self.cluster_size
@@ -1783,7 +1783,7 @@ class ps2mc(object):
 			print("bad directory:", (dirname
 						 + ': missing ".." entry'))
 			ret = False
-		for i in xrange(2, length):
+		for i in range(2, length):
 			ent = dir[i]
 			mode = ent[0]
 			if not (mode & DF_EXISTS):
@@ -1821,7 +1821,7 @@ class ps2mc(object):
 		ret = self._check_dir(fat, (0, 0), "/", ent)
 
 		lost_clusters = 0
-		for i in xrange(self.allocatable_cluster_end):
+		for i in range(self.allocatable_cluster_end):
 			a = self.lookup_fat(i)
 			if (a & PS2MC_FAT_ALLOCATED_BIT) and not fat[i]:
 				print(i,)

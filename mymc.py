@@ -475,7 +475,7 @@ def do_create_pad(cmd, mc, opts, args, opterr):
 	pad = b"\0" * mc.cluster_size
 	f = mc.open(args[0], "wb")
 	try:
-		for i in xrange(length):
+		for i in range(length):
 			f.write(pad)
 	finally:
 		f.close()
