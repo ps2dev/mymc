@@ -12,7 +12,7 @@ _SCCS_ID = "@(#) mymc gui.py 1.8 22/02/05 19:20:59\n"
 import os
 import sys
 import struct
-from io import StringIO
+from io import BytesIO
 import time
 from functools import partial
 
@@ -101,7 +101,7 @@ def single_title(title):
 def _get_icon_resource_as_images(name):
 	ico = guires.resources[name]
 	images = []
-	f = StringIO(ico)
+	f = BytesIO(ico)
 	count = struct.unpack("<HHH", ico[0:6])[2]
 	# count = wx.Image_GetImageCount(f, wx.BITMAP_TYPE_ICO)
 	for i in range(count):
