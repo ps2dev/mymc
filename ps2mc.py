@@ -379,9 +379,9 @@ class ps2mc_file(object):
 		size = max(min(self.length - pos, size), 0)
 		ret = ""
 		while size > 0:
-			off = pos % cluster_size
+			off = int(pos % cluster_size)
 			l = min(cluster_size - off, size)
-			buf = self.read_file_cluster(pos / cluster_size)
+			buf = self.read_file_cluster(int(pos / cluster_size))
 			if buf == None:
 				break
 			if eol != None:
@@ -411,8 +411,8 @@ class ps2mc_file(object):
 		# print("@@@ write", pos, size)
 		i = 0
 		while size > 0:
-			cluster = pos / cluster_size
-			off = pos % cluster_size
+			cluster = int(pos / cluster_size)
+			off = int(pos % cluster_size)
 			l = min(cluster_size - off, size)
 			s = out[i : i + l]
 			pos += l
@@ -499,7 +499,7 @@ class ps2mc_directory(object):
 				    length * PS2MC_DIRENT_LENGTH, mode, name)
 
 	def __iter__(self):
-		start = self.tell()
+		start = int(self.tell())
 		if start != 0:
 			start -= 1
 			self.seek(start)
@@ -528,10 +528,10 @@ class ps2mc_directory(object):
 		self.f.seek(offset * PS2MC_DIRENT_LENGTH, whence)
 
 	def tell(self):
-		return self.f.tell() / PS2MC_DIRENT_LENGTH
+		return int(self.f.tell() / PS2MC_DIRENT_LENGTH)
 
 	def __len__(self):
-		return self.f.length / PS2MC_DIRENT_LENGTH
+		return int(self.f.length / PS2MC_DIRENT_LENGTH)
 	
 	def __getitem__(self, index):
 		# print("@@@ getitem", index, self.f.name)
@@ -596,7 +596,7 @@ class ps2mc(object):
 		self.spare_size = div_round_up(self.page_size, 128) * 4
 		self.raw_page_size = self.page_size + self.spare_size
 		self.cluster_size = self.page_size * self.pages_per_cluster
-		self.entries_per_cluster = (self.page_size
+		self.entries_per_cluster = int(self.page_size
 					    * self.pages_per_cluster / 4)
 
 		limit = (min(self.good_block2, self.good_block1)
@@ -704,12 +704,12 @@ class ps2mc(object):
 		pages_per_card = round_down(param_pages_per_card,
 					    pages_per_erase_block)
 		cluster_size = PS2MC_CLUSTER_SIZE
-		pages_per_cluster = cluster_size / page_size
-		clusters_per_erase_block = (pages_per_erase_block
+		pages_per_cluster = int(cluster_size / page_size)
+		clusters_per_erase_block = int(pages_per_erase_block
 					    / pages_per_cluster)
-		erase_blocks_per_card = pages_per_card / pages_per_erase_block
-		clusters_per_card = pages_per_card / pages_per_cluster
-		epc = cluster_size / 4
+		erase_blocks_per_card = int(pages_per_card / pages_per_erase_block)
+		clusters_per_card = int(pages_per_card / pages_per_cluster)
+		epc = int(cluster_size / 4)
 
 		if (page_size < PS2MC_DIRENT_LENGTH
 		    or pages_per_cluster < 1
@@ -937,8 +937,8 @@ class ps2mc(object):
 				a[1] = False
 
 	def read_fat_cluster(self, n):
-		indirect_offset = n % self.entries_per_cluster
-		dbl_offset = n / self.entries_per_cluster
+		indirect_offset = int(n % self.entries_per_cluster)
+		dbl_offset = int(n / self.entries_per_cluster)
 		indirect_cluster = self.indirect_fat_cluster_list[dbl_offset]
 		indirect_fat = self._read_fat_cluster(indirect_cluster)
 		cluster = indirect_fat[indirect_offset]
@@ -949,8 +949,8 @@ class ps2mc(object):
 			raise io_error(EIO,
 					 "FAT cluster index out of range"
 					 " (%d)" % n)
-		offset = n % self.entries_per_cluster
-		fat_cluster = n / self.entries_per_cluster
+		offset = int(n % self.entries_per_cluster)
+		fat_cluster = int(n / self.entries_per_cluster)
 		(fat, cluster) = self.read_fat_cluster(fat_cluster)
 		return (fat, offset, cluster)
 
@@ -968,7 +968,7 @@ class ps2mc(object):
 		allocatable_cluster_limit = self.allocatable_cluster_limit
 		
 		end = div_round_up(allocatable_cluster_limit, epc)
-		remainder = allocatable_cluster_limit % epc
+		remainder = int(allocatable_cluster_limit % epc)
 			
 		while self.fat_cursor < end:
 			(fat, cluster) = self.read_fat_cluster(self.fat_cursor)
@@ -1080,7 +1080,7 @@ class ps2mc(object):
 
 		if is_dir and thisf != None and new_ent[2] != None:
 			new_ent = list(new_ent)
-			new_ent[2] /= PS2MC_DIRENT_LENGTH
+			new_ent[2] = int(new_ent[2] / PS2MC_DIRENT_LENGTH)
 			
 		# print("len: ", ent[2], new_ent[2])
 
@@ -1251,7 +1251,7 @@ class ps2mc(object):
 		
 		while cluster != PS2MC_FAT_CHAIN_END:
 			if cluster / epc < self.fat_cursor:
-				self.fat_cursor = cluster / epc
+				self.fat_cursor = int(cluster / epc)
 			next_cluster = self.lookup_fat(cluster)
 			if next_cluster & PS2MC_FAT_ALLOCATED_BIT == 0:
 				# corrupted

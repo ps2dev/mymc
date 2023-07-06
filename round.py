@@ -10,12 +10,12 @@
 _SCCS_ID = "@(#) mymc round.py 1.3 07/04/17 02:10:27\n"
 
 def div_round_up(a, b):
-	return (a + b - 1) / b
+	return int((a + b - 1) / b)
 
 def round_up(a, b):
-	return (a + b - 1) / b * b
+	return int((a + b - 1) / b * b)
 
 def round_down(a, b):
-	return a / b * b
+	return int(a / b * b)
 
 
