@@ -68,14 +68,14 @@ if hasattr(struct, "Struct"):
 		ent = list(ent)
 		ent[3] = _tod_struct.unpack(ent[3])
 		ent[6] = _tod_struct.unpack(ent[6])
-		ent[8] = zero_terminate(ent[8]).decode("ascii")
+		ent[8] = zero_terminate(ent[8]).decode("utf-8")
 		return ent
 
 	def pack_dirent(ent):
 		ent = list(ent)
 		ent[3] = _tod_struct.pack(*ent[3])
 		ent[6] = _tod_struct.pack(*ent[6])
-		ent[8] = ent[8].encode("ascii")
+		ent[8] = ent[8].encode("utf-8")
 		return _dirent_struct.pack(*ent)
 else:
 	def unpack_tod(s):
@@ -99,7 +99,7 @@ else:
 		ent = list(ent)
 		ent[3] = struct.pack(_tod_fmt, *ent[3])
 		ent[6] = struct.pack(_tod_fmt, *ent[6])
-		ent[8] = ent[8].encode("ascii")
+		ent[8] = ent[8].encode("utf-8")
 		return struct.pack(_dirent_fmt, *ent)
 
 def time_to_tod(when):
