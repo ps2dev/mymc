@@ -7,7 +7,7 @@
 # A simple interface for working with various PS2 save file formats.
 #
 
-_SCCS_ID = "@(#) mymc ps2save.py 1.8 22/01/15 01:25:25\n"
+_SCCS_ID = "@(#) mymc ps2save.py 1.9 23/07/06 19:46:30\n"
 
 import sys
 import os
@@ -26,10 +26,10 @@ try:
 except ImportError:
 	lzari = None
 
-PS2SAVE_MAX_MAGIC = "Ps2PowerSave"
-PS2SAVE_SPS_MAGIC = "\x0d\0\0\0SharkPortSave"
-PS2SAVE_CBS_MAGIC = "CFU\0"
-PS2SAVE_NPO_MAGIC = "nPort"
+PS2SAVE_MAX_MAGIC = b"Ps2PowerSave"
+PS2SAVE_SPS_MAGIC = b"\x0d\0\0\0SharkPortSave"
+PS2SAVE_CBS_MAGIC = b"CFU\0"
+PS2SAVE_NPO_MAGIC = b"nPort"
 
 # This is the initial permutation state ("S") for the RC4 stream cipher
 # algorithm used to encrpyt and decrypt Codebreaker saves.
@@ -180,8 +180,8 @@ def shift_jis_conv(src, encoding = None):
 	if encoding == "shift_jis":
 		return src
 	u = src.decode("shift_jis", "replace")
-	if encoding == "unicode":
-		return u
+	if encoding == "utf-8":
+		return u.encode("utf-8")
 	a = []
 	for uc in u:
 		try:
@@ -242,8 +242,9 @@ def icon_sys_title(icon_sys, encoding = None):
 	
 	offset = icon_sys[1]
 	title = icon_sys[14]
-	title2 = shift_jis_conv(title[offset:], encoding)
-	title1 = shift_jis_conv(title[:offset], encoding)
+	encoding = sys.getdefaultencoding() if not encoding else encoding
+	title2 = shift_jis_conv(title[offset:], encoding).decode(encoding)
+	title1 = shift_jis_conv(title[:offset], encoding).decode(encoding)
 	return (title1, title2)
 
 def _read_fixed(f, n):
@@ -251,7 +252,7 @@ def _read_fixed(f, n):
 	
 	s = f.read(n)
 	if len(s) != n:
-		raise eof, f
+		raise eof(f)
 	return s
 
 def _read_long_string(f):
@@ -314,7 +315,7 @@ class ps2_save_file(object):
 		    or not mode_is_dir(dotent[0])
 		    or not mode_is_dir(dotdotent[0])
 		    or dirent[2] < 2):
-			raise corrupt, ("Not a EMS (.psu) save file.", f)
+			raise corrupt("Not a EMS (.psu) save file.", f)
 
 		dirent[2] -= 2
 		self.set_directory(dirent)
@@ -323,7 +324,7 @@ class ps2_save_file(object):
 			ent = unpack_dirent(_read_fixed(f,
 							PS2MC_DIRENT_LENGTH))
 			if not mode_is_file(ent[0]):
-				raise subdir, f
+				raise subdir(f)
 			flen = ent[2]
 			self.set_file(i, ent, _read_fixed(f, flen))
 			_read_fixed(f, round_up(flen, cluster_size) - flen)
@@ -346,11 +347,11 @@ class ps2_save_file(object):
 			(ent, data) = self.get_file(i)
 			f.write(pack_dirent(ent))
 			if not mode_is_file(ent[0]):
-				# print ent
-				# print hex(ent[0])
-				raise error, "Directory has a subdirectory."
+				# print(ent)
+				# print(hex(ent[0]))
+				raise error("Directory has a subdirectory.")
 			f.write(data)
-			f.write("\0" * (round_up(len(data), cluster_size)
+			f.write(b"\0" * (round_up(len(data), cluster_size)
 					- len(data)))
 		f.flush()
 
@@ -359,7 +360,7 @@ class ps2_save_file(object):
 		self._compressed = None
 		
 		if lzari == None:
-			raise error, ("The lzari module is needed to "
+			raise error("The lzari module is needed to "
 				      " decompress MAX Drive saves.")
 		s = lzari.decode(s, length,
 				 "decompressing " + self.dirent[8] + ": ")
@@ -368,14 +369,14 @@ class ps2_save_file(object):
 		off = 0
 		for i in range(dirlen):
 			if len(s) - off < 36:
-				raise eof, f
+				raise eof(self.f)
 			(l, name) = struct.unpack("<L32s", s[off : off + 36])
 			name = zero_terminate(name)
-			# print "%08x %08x %s" % (off, l, name)
+			# print("%08x %08x %s" % (off, l, name))
 			off += 36
 			data = s[off : off + l]
 			if len(data) != l:
-				raise eof, f
+				raise eof(self.f)
 			self.set_file(i,
 				      (DF_RWX | DF_FILE | DF_0400 | DF_EXISTS,
 				       0, l, timestamp, 0, 0, timestamp, 0,
@@ -391,7 +392,7 @@ class ps2_save_file(object):
 			(magic, crc, dirname, iconsysname, clen, dirlen,
 			 length) = struct.unpack("<12sL32s32sLLL", s)
 		if magic != PS2SAVE_MAX_MAGIC:
-			raise corrupt, ("Not a MAX Drive save file", f)
+			raise corrupt("Not a MAX Drive save file", f)
 		if clen == length:
 			# some saves have the uncompressed size here
 			# instead of the compressed size
@@ -409,7 +410,7 @@ class ps2_save_file(object):
 		
 	def save_max_drive(self, f):
 		if lzari == None:
-			raise error, ("The lzari module is needed to "
+			raise error("The lzari module is needed to "
 				      " decompress MAX Drive saves.")
 		iconsysname = ""
 		icon_sys = self.get_icon_sys()
@@ -424,10 +425,10 @@ class ps2_save_file(object):
 		for i in range(dirent[2]):
 			(ent, data) = self.get_file(i)
 			if not mode_is_file(ent[0]):
-				raise error, "Non-file in save file."
+				raise error("Non-file in save file.")
 			s += struct.pack("<L32s", ent[2], ent[8])
 			s += data
-			s += "\0" * (round_up(len(s) + 8, 16) - 8 - len(s))
+			s += b"\0" * (round_up(len(s) + 8, 16) - 8 - len(s))
 		length = len(s)
 		progress =  "compressing " + dirent[8] + ": "
 		compressed = lzari.encode(s, progress)
@@ -445,10 +446,10 @@ class ps2_save_file(object):
 	def load_codebreaker(self, f):
 		magic = f.read(4)
 		if magic != PS2SAVE_CBS_MAGIC:
-			raise corrupt, ("Not a Codebreaker save file.", f)
+			raise corrupt("Not a Codebreaker save file.", f)
 		(d04, hlen) = struct.unpack("<LL", _read_fixed(f, 8))
 		if hlen < 92 + 32:
-			raise corrupt, ("Header lengh too short.", f)
+			raise corrupt("Header lengh too short.", f)
 		(dlen, flen, dirname, created, modified, d44, d48, dirmode,
 		 d50, d54, d58, title) \
 		       = struct.unpack("<LL32s8s8sLLLLLL%ds" % (hlen - 92),
@@ -471,7 +472,7 @@ class ps2_save_file(object):
 		body = f.read(flen)
 		clen = len(body)
 		if clen != flen and clen != flen - hlen:
-			raise eof, f
+			raise eof(f)
 		body = rc4_crypt(PS2SAVE_CBS_RC4S, body)
 		dcobj = zlib.decompressobj()
 		body = dcobj.decompress(body, dlen)
@@ -479,12 +480,12 @@ class ps2_save_file(object):
 		files = []
 		while body != "":
 			if len(body) < 64:
-				raise eof, f
+				raise eof(f)
 			header = struct.unpack("<8s8sLHHLL32s", body[:64])
 			size = header[2]
 			data = body[64 : 64 + size]
 			if len(data) != size:
-				raise eof, f
+				raise eof(f)
 			body = body[64 + size:]
 			files.append((header, data))
 			
@@ -498,7 +499,7 @@ class ps2_save_file(object):
 			created = unpack_tod(created)
 			modified = unpack_tod(modified)
 			if not mode_is_file(mode):
-				raise subdir, f
+				raise subdir(f)
 			if tod_to_time(created) == 0:
 				created = tod_now()
 			if tod_to_time(modified) == 0:
@@ -509,7 +510,7 @@ class ps2_save_file(object):
 	def load_sharkport(self, f):
 		magic = f.read(17)
 		if magic != PS2SAVE_SPS_MAGIC:
-			raise corrupt, ("Not a SharkPort/X-Port save file.", f)
+			raise corrupt("Not a SharkPort/X-Port save file.", f)
 		(savetype,) = struct.unpack("<L", _read_fixed(f, 4))
 		dirname = _read_long_string(f)
 		datestamp = _read_long_string(f)
@@ -529,7 +530,7 @@ class ps2_save_file(object):
 		dirmode = dirmode / 256 % 256 + dirmode % 256 * 256
 		dirlen -= 2
 		if not mode_is_dir(dirmode) or dirlen < 0:
-			raise corrupt, ("Bad values in directory entry.", f)
+			raise corrupt("Bad values in directory entry.", f)
 		self.set_directory((dirmode, 0, dirlen, created, 0, 0,
 				    modified, 0, dirname))
 
@@ -538,14 +539,14 @@ class ps2_save_file(object):
 			       = struct.unpack("<H64sL8xH2x8s8s",
 					       _read_fixed(f, 98))
 			if hlen < 98:
-				raise corrupt, ("Header length too short.", f)
+				raise corrupt("Header length too short.", f)
 			_read_fixed(f, hlen - 98)
 			name = zero_terminate(name)
 			created = unpack_tod(created)
 			modified = unpack_tod(modified)
 			mode = mode / 256 % 256 + mode % 256 * 256
 			if not mode_is_file(mode):
-				raise subdir, f
+				raise subdir(f)
 			self.set_file(i, (mode, 0, flen, created, 0, 0,
 					  modified, 0, name),
 				      _read_fixed(f, flen))
@@ -601,8 +602,8 @@ else:
 	_bad_filename_chars2 = _bad_filename_chars + "?*'&|:[<>] \\\""
 	_bad_filename_repl2 = _bad_filename_repl +   "______(())___"
 
-_filename_trans = string.maketrans(_bad_filename_chars, _bad_filename_repl);
-_filename_trans2 = string.maketrans(_bad_filename_chars2, _bad_filename_repl2);
+_filename_trans = str.maketrans(_bad_filename_chars, _bad_filename_repl);
+_filename_trans2 = str.maketrans(_bad_filename_chars2, _bad_filename_repl2);
 
 def fix_filename(filename):
 	"""Replace illegal or problematic characters from a filename."""
@@ -617,10 +618,10 @@ def make_longname(dirname, sf):
 		title = icon_sys_title(icon_sys, "ascii")
 		title = title[0] + " " + title[1]
 		title = " ".join(title.split())
-	crc = binascii.crc32("")
+	crc = binascii.crc32(b"")
 	for (ent, data) in sf:
 		crc = binascii.crc32(data, crc)
- 	if len(dirname) >= 12 and (dirname[0:2] in ("BA", "BJ", "BE", "BK")):
+	if len(dirname) >= 12 and (dirname[0:2] in ("BA", "BJ", "BE", "BK")):
 		if dirname[2:6] == "DATA":
 			title = ""
 		else:

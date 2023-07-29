@@ -7,12 +7,12 @@
 
 """Graphical user-interface for mymc."""
 
-_SCCS_ID = "@(#) mymc gui.py 1.8 22/02/05 19:20:59\n"
+_SCCS_ID = "@(#) mymc gui.py 1.9 23/07/06 19:35:21\n"
 
 import os
 import sys
 import struct
-import cStringIO
+from io import BytesIO
 import time
 from functools import partial
 
@@ -101,7 +101,7 @@ def single_title(title):
 def _get_icon_resource_as_images(name):
 	ico = guires.resources[name]
 	images = []
-	f = cStringIO.StringIO(ico)
+	f = BytesIO(ico)
 	count = struct.unpack("<HHH", ico[0:6])[2]
 	# count = wx.Image_GetImageCount(f, wx.BITMAP_TYPE_ICO)
 	for i in range(count):
@@ -159,7 +159,7 @@ class dirlist_control(wx.ListCtrl):
 
 	def _update_dirtable(self, mc, dir):
 		self.dirtable = table = []
-		enc = "unicode"
+		enc = "utf-8"
 		if self.config.get_ascii():
 			enc = "ascii"
 		for ent in dir:
@@ -347,7 +347,7 @@ class icon_window(wx.Window):
 		r = mymcicon.init_icon_renderer(focus.GetHandle(),
 					       self.GetHandle())
 		if r == -1:
-			print "init_icon_renderer failed"
+			print("init_icon_renderer failed")
 			self.failed = True
 			return
 		
@@ -384,7 +384,7 @@ class icon_window(wx.Window):
 			r = mymcicon.load_icon(icon_sys, len(icon_sys),
 					      icon, len(icon))
 		if r != 0:
-			print "load_icon", r
+			print("load_icon", r)
 			self.failed = True
 
 	def _set_lighting(self, lighting, vertex_diffuse, alt_lighting,
@@ -634,22 +634,22 @@ class gui_frame(wx.Frame):
 		if self.mc != None:
 			try:
 				self.mc.close()
-			except EnvironmentError, value:
-				self.mc_error(value)
+			except EnvironmentError as e:
+				self.mc_error(e)
 			self.mc = None
 		if self.f != None:
 			try:
 				self.f.close()
-			except EnvironmentError, value:
-				self.mc_error(value)
+			except EnvironmentError as e:
+				self.mc_error(e)
 			self.f = None
 		self.mcname = None
 		
 	def refresh(self):
 		try:
 			self.dirlist.update(self.mc)
-		except EnvironmentError, value:
-			self.mc_error(value)
+		except EnvironmentError as e:
+			self.mc_error(e)
 			self._close_mc()
 			self.dirlist.update(None)
 
@@ -674,12 +674,12 @@ class gui_frame(wx.Frame):
 		
 		f = None
 		try:
-			f = file(filename, "r+b")
+			f = open(filename, "r+b")
 			mc = ps2mc.ps2mc(f)
-		except EnvironmentError, value:
+		except EnvironmentError as e:
 			if f != None:
 				f.close()
-			self.mc_error(value, filename)
+			self.mc_error(e, filename)
 			self.SetTitle(self.title)
 			self.refresh()
 			return
@@ -718,8 +718,8 @@ class gui_frame(wx.Frame):
 				icon = f.read()
 			finally:
 				f.close()
-		except EnvironmentError, value:
-			print "icon failed to load", value
+		except EnvironmentError as e:
+			print("icon failed to load", e)
 			self.icon_win.load_icon(None, None)
 			return
 
@@ -758,8 +758,8 @@ class gui_frame(wx.Frame):
 				sf = mc.export_save_file("/" + dirname)
 				longname = ps2save.make_longname(dirname, sf)
 				sfiles.append((dirname, sf, longname))
-			except EnvironmentError, value:
-				self.mc_error(value. dirname)
+			except EnvironmentError as e:
+				self.mc_error(e.dirname)
 
 		if len(sfiles) == 0:
 			return
@@ -778,7 +778,7 @@ class gui_frame(wx.Frame):
 			if fn == "":
 				return
 			try:
-				f = file(fn, "wb")
+				f = open(fn, "wb")
 				try:
 					if fn.endswith(".max"):
 						sf.save_max_drive(f)
@@ -786,8 +786,8 @@ class gui_frame(wx.Frame):
 						sf.save_ems(f)
 				finally:
 					f.close()
-			except EnvironmentError, value:
-				self.mc_error(value, fn)
+			except EnvironmentError as e:
+				self.mc_error(e, fn)
 				return
 
 			dir = os.path.dirname(fn)
@@ -804,12 +804,12 @@ class gui_frame(wx.Frame):
 		for (dirname, sf, longname) in sfiles:
 			fn = os.path.join(dir, longname) + ".psu"
 			try:
-				f = file(fn, "wb")
+				f = open(fn, "wb")
 				sf.save_ems(f)
 				f.close()
 				count += 1
-			except EnvironmentError, value:
-				self.mc_error(value, fn)
+			except EnvironmentError as e:
+				self.mc_error(e, fn)
 		if count > 0:
 			if os.path.isabs(dir):
 				self.config.set_savefile_dir(dir)
@@ -819,7 +819,7 @@ class gui_frame(wx.Frame):
 
 	def _do_import(self, fn):
 		sf = ps2save.ps2_save_file()
-		f = file(fn, "rb")
+		f = open(fn, "rb")
 		try:
 			ft = ps2save.detect_file_type(f)
 			f.seek(0)
@@ -868,8 +868,8 @@ class gui_frame(wx.Frame):
 			try:
 				self._do_import(fn)
 				success = fn
-			except EnvironmentError, value:
-				self.mc_error(value, fn)
+			except EnvironmentError as e:
+				self.mc_error(e, fn)
 
 		if success != None:
 			dir = os.path.dirname(success)
@@ -904,8 +904,8 @@ class gui_frame(wx.Frame):
 		for dn in dirnames:
 			try:
 				mc.rmdir("/" + dn)
-			except EnvironmentError, value:
-				self.mc_error(value, dn)
+			except EnvironmentError as e:
+				self.mc_error(e, dn)
 
 		mc.check()
 		self.refresh()
@@ -934,13 +934,13 @@ if __name__ == "__main__":
 
 	run("test.ps2")
 
- 	gc.collect()
- 	for o in gc.garbage:
- 		print 
- 		print o
- 		if type(o) == ps2mc.ps2mc_file:
+	gc.collect()
+	for o in gc.garbage:
+		print()
+		print(o)
+		if type(o) == ps2mc.ps2mc_file:
  			for m in dir(o):
- 				print m, getattr(o, m)
+ 				print(m, getattr(o, m))
 
 
 # 	while True:
@@ -954,7 +954,7 @@ if __name__ == "__main__":
 # 					    or m == "__dict__"
 # 					    or m == "__weakref__"):
 # 						continue
-# 					print m
+# 					print(m)
 # 					setattr(o, m, None)
 # 					o = None
 # 					break
